@@ -26,47 +26,7 @@ npm install
 
 Dependencies are intentionally exact-pinned. Do not install packages with `latest`, `^`, or `~`.
 
-### 3. Configure Environment Variables
-
-Create a local env file:
-
-```bash
-cp .env.example .env.local
-```
-
-Fill in:
-
-```bash
-NEXT_PUBLIC_SUPABASE_URL=
-NEXT_PUBLIC_SUPABASE_ANON_KEY=
-NEXT_PUBLIC_APP_URL=http://localhost:3000
-```
-
-Without Supabase env vars, the app still renders the login page, but auth and protected app flows will not work.
-
-### 4. Set Up Supabase
-
-Create a Supabase project, then run the SQL files in this order:
-
-```text
-db/migrations/0001_stage1_schema.sql
-db/seed/stage1_restaurants.sql
-```
-
-The migration creates Stage 1 tables, triggers, indexes, grants, and RLS policies. The seed file adds CMU-area restaurants.
-
-In Supabase Auth settings, enable:
-
-- Email/password auth
-- Google OAuth, optional for local Stage 1 testing
-
-For Google OAuth, set the callback URL to:
-
-```text
-http://localhost:3000/auth/callback
-```
-
-### 5. Start the Dev Server
+### 3. Start the Dev Server
 
 ```bash
 npm run dev
