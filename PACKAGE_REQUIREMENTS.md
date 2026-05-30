@@ -1,8 +1,8 @@
 # ChiGo Package Requirements
 
-Use this file when creating the first `package.json` for the web app. Do not use `latest`, caret ranges, or mixed major versions.
+Use this file when maintaining `package.json` for the web app. Do not use `latest`, caret ranges, or mixed major versions.
 
-The app has not been scaffolded yet, so this repository intentionally keeps the package requirements as a template instead of a live `package.json`. When Stage 1 implementation starts, create `package.json` from this template, run `npm install`, and commit the generated `package-lock.json`.
+Stage 1 has a live `package.json` based on this template. When dependencies change, update this file and `package.json` in the same change, run `npm install`, and commit the generated `package-lock.json`.
 
 ## Runtime Requirements
 
@@ -50,8 +50,9 @@ The app has not been scaffolded yet, so this repository intentionally keeps the 
     "zod": "4.1.5"
   },
   "devDependencies": {
-    "@playwright/test": "1.55.0",
+    "@playwright/test": "1.55.1",
     "@tailwindcss/postcss": "4.3.0",
+    "@eslint/eslintrc": "3.3.5",
     "@types/node": "22.15.30",
     "@types/react": "19.2.15",
     "@types/react-dom": "19.2.3",
@@ -61,6 +62,11 @@ The app has not been scaffolded yet, so this repository intentionally keeps the 
     "tailwindcss": "4.3.0",
     "typescript": "5.9.3",
     "vitest": "3.2.4"
+  },
+  "overrides": {
+    "next": {
+      "postcss": "8.5.10"
+    }
   }
 }
 ```
@@ -72,6 +78,7 @@ The app has not been scaffolded yet, so this repository intentionally keeps the 
 - Keep `next` and `eslint-config-next` on the same version.
 - Keep `react`, `react-dom`, `@types/react`, and `@types/react-dom` in the same major family.
 - Keep `tailwindcss` and `@tailwindcss/postcss` on the same version.
+- Keep the `next.postcss` override unless a future pinned Next version includes patched PostCSS directly.
 - Do not run `npm install package@latest`.
 - Do not use `^`, `~`, `latest`, `next`, `beta`, `canary`, or wildcard versions.
 - If a new package is required, pin an exact version and update this file in the same change.

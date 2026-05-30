@@ -103,7 +103,7 @@ This document is the shared technical reference for all staged specs. Stage-spec
 ## Testing
 
 - Unit test runner: Vitest `3.2.4`.
-- End-to-end test runner: Playwright `@playwright/test` `1.55.0`.
+- End-to-end test runner: Playwright `@playwright/test` `1.55.1`.
 - Unit tests: validation schemas and service functions.
 - Integration tests: server actions and database policies where practical.
 - End-to-end tests: Playwright for the main user flows.
