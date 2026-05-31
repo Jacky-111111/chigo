@@ -6,7 +6,13 @@ import {
   ScanText,
   Utensils,
 } from "lucide-react";
+import { MenuAnalysisProgress } from "@/components/menus/menu-analysis-progress";
 import { retryMenuAnalysis } from "@/lib/actions/menu-actions";
+import {
+  canRetryMenuAnalysis,
+  getMenuAnalysisStartedAt,
+  isMenuAnalysisPending,
+} from "@/lib/services/menu-analysis-state";
 import type { MenuUploadSummary } from "@/lib/services/menus";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -24,6 +30,11 @@ export function MenuUploadSummaryCard({
       : upload.status === "completed"
         ? "warm"
         : "indigo";
+  const canRetryAnalysis = canRetryMenuAnalysis(upload);
+  const isPendingAnalysis = isMenuAnalysisPending(upload.status);
+  const analysisStartedAt = isPendingAnalysis
+    ? getMenuAnalysisStartedAt(upload)
+    : null;
 
   return (
     <Card className="grid gap-4 p-4">
@@ -66,8 +77,12 @@ export function MenuUploadSummaryCard({
         </p>
       )}
 
+      {analysisStartedAt ? (
+        <MenuAnalysisProgress startedAt={analysisStartedAt} compact />
+      ) : null}
+
       <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
-        {upload.status === "failed" ? (
+        {canRetryAnalysis ? (
           <form action={retryMenuAnalysis}>
             <input type="hidden" name="menuUploadId" value={upload.id} />
             <SubmitButton

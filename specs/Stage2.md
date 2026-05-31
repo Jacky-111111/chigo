@@ -167,3 +167,5 @@ Stage 2 is complete when:
 - Restaurant detail pages show active invites and related menu analyses.
 - Users can submit feedback on incorrect AI output.
 - Failures show actionable retry states instead of blank pages.
+- In-progress menu analysis shows progress feedback and allows retry after it appears stalled for a few minutes.
+- Longer term, menu analysis should move from inline Server Actions to a background job or queue once upload volume grows.
