@@ -10,6 +10,7 @@ import {
 } from "@/lib/services/menu-analysis-state";
 import { analyzeMenuImage, getMenuAiConfig } from "@/lib/services/menu-ai";
 import { normalizeMenuImage } from "@/lib/services/menu-image";
+import { removeStoredMenuImage } from "@/lib/services/menu-storage";
 import { requireCompletedProfile, requireUser } from "@/lib/services/profiles";
 import {
   menuFeedbackFormSchema,
@@ -86,7 +87,17 @@ export async function createMenuUpload(formData: FormData) {
     .single();
 
   if (uploadError || !uploadData) {
-    await supabase.storage.from("menu-images").remove([imagePath]);
+    const cleanupResult = await removeStoredMenuImage(
+      supabase.storage,
+      imagePath,
+    );
+
+    if (!cleanupResult.ok) {
+      console.error("Failed to clean up orphaned menu image.", {
+        error: cleanupResult.errorMessage,
+      });
+    }
+
     menuError(
       "/menus/new",
       uploadError?.message ?? "Could not create menu upload.",
