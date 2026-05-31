@@ -68,6 +68,7 @@ Run the migrations in order:
 db/migrations/0001_stage1_schema.sql
 db/migrations/0002_stage2_menu_assistant.sql
 db/migrations/0003_stage2_advisor_fixes.sql
+db/migrations/0004_stage2_menu_image_normalization.sql
 ```
 
 Then seed restaurants if needed:
@@ -76,7 +77,7 @@ Then seed restaurants if needed:
 db/seed/stage1_restaurants.sql
 ```
 
-The Stage 2 migration creates the private `menu-images` storage bucket plus RLS policies for menu uploads, menu items, feedback, and owned image paths.
+The Stage 2 migrations create the private `menu-images` storage bucket plus RLS policies for menu uploads, menu items, feedback, and owned image paths. HEIC/HEIF uploads are normalized to JPEG before storage and AI analysis.
 
 ## Useful Commands
 

@@ -19,6 +19,15 @@ export const acceptedMenuImageTypes = [
   "image/heif",
 ] as const;
 
+const acceptedMenuImageExtensions = [
+  "jpg",
+  "jpeg",
+  "png",
+  "webp",
+  "heic",
+  "heif",
+];
+
 export const maxMenuImageBytes = 10 * 1024 * 1024;
 
 const optionalUuid = z.preprocess((value) => {
@@ -59,11 +68,15 @@ export function validateMenuImageFile(value: FormDataEntryValue | null) {
     return { ok: false as const, message: "Upload a menu image first." };
   }
 
-  if (
-    !acceptedMenuImageTypes.includes(
-      value.type as (typeof acceptedMenuImageTypes)[number],
-    )
-  ) {
+  const extension = value.name.split(".").pop()?.toLowerCase();
+  const acceptedType = acceptedMenuImageTypes.includes(
+    value.type as (typeof acceptedMenuImageTypes)[number],
+  );
+  const acceptedExtension = Boolean(
+    extension && acceptedMenuImageExtensions.includes(extension),
+  );
+
+  if (!acceptedType && !acceptedExtension) {
     return {
       ok: false as const,
       message: "Use a JPEG, PNG, WebP, HEIC, or HEIF image.",
@@ -78,33 +91,4 @@ export function validateMenuImageFile(value: FormDataEntryValue | null) {
   }
 
   return { ok: true as const, file: value };
-}
-
-export function getMenuImageExtension(file: File) {
-  const fromName = file.name.split(".").pop()?.toLowerCase();
-
-  if (
-    fromName &&
-    ["jpg", "jpeg", "png", "webp", "heic", "heif"].includes(fromName)
-  ) {
-    return fromName === "jpeg" ? "jpg" : fromName;
-  }
-
-  if (file.type === "image/png") {
-    return "png";
-  }
-
-  if (file.type === "image/webp") {
-    return "webp";
-  }
-
-  if (file.type === "image/heic") {
-    return "heic";
-  }
-
-  if (file.type === "image/heif") {
-    return "heif";
-  }
-
-  return "jpg";
 }
