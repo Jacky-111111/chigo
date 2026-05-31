@@ -5,9 +5,9 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { analyzeMenuImage, getMenuAiConfig } from "@/lib/services/menu-ai";
+import { normalizeMenuImage } from "@/lib/services/menu-image";
 import { requireCompletedProfile, requireUser } from "@/lib/services/profiles";
 import {
-  getMenuImageExtension,
   menuFeedbackFormSchema,
   menuUploadFormSchema,
   validateMenuImageFile,
@@ -47,11 +47,21 @@ export async function createMenuUpload(formData: FormData) {
 
   const supabase = await createClient();
   const imageBuffer = Buffer.from(await image.file.arrayBuffer());
-  const imagePath = `${user.id}/${crypto.randomUUID()}.${getMenuImageExtension(image.file)}`;
+  const normalizedImage = await normalizeMenuImage({
+    buffer: imageBuffer,
+    mimeType: image.file.type,
+    filename: image.file.name,
+  }).catch(() => {
+    menuError(
+      "/menus/new",
+      "Could not convert this HEIC/HEIF image. Export it as JPEG or WebP, then try again.",
+    );
+  });
+  const imagePath = `${user.id}/${crypto.randomUUID()}.${normalizedImage.extension}`;
   const { error: storageError } = await supabase.storage
     .from("menu-images")
-    .upload(imagePath, imageBuffer, {
-      contentType: image.file.type,
+    .upload(imagePath, normalizedImage.buffer, {
+      contentType: normalizedImage.mimeType,
       upsert: false,
     });
 
@@ -72,6 +82,7 @@ export async function createMenuUpload(formData: FormData) {
     .single();
 
   if (uploadError || !uploadData) {
+    await supabase.storage.from("menu-images").remove([imagePath]);
     menuError(
       "/menus/new",
       uploadError?.message ?? "Could not create menu upload.",
@@ -79,7 +90,10 @@ export async function createMenuUpload(formData: FormData) {
   }
 
   const upload = uploadData as MenuUpload;
-  const imageDataUrl = toDataUrl(imageBuffer, image.file.type);
+  const imageDataUrl = toDataUrl(
+    normalizedImage.buffer,
+    normalizedImage.mimeType,
+  );
   const analysisError = await analyzeAndPersistMenu({
     upload,
     imageDataUrl,
@@ -130,7 +144,20 @@ export async function retryMenuAnalysis(formData: FormData) {
   }
 
   const imageBuffer = Buffer.from(await imageBlob.arrayBuffer());
-  const imageDataUrl = toDataUrl(imageBuffer, imageBlob.type || "image/jpeg");
+  const normalizedImage = await normalizeMenuImage({
+    buffer: imageBuffer,
+    mimeType: imageBlob.type || "image/jpeg",
+    filename: upload.image_url,
+  }).catch(async () => {
+    const message =
+      "Could not convert this HEIC/HEIF image. Export it as JPEG or WebP, then upload again.";
+    await markMenuUploadFailed(upload.id, user.id, message);
+    menuError(`/menus/${upload.id}`, message);
+  });
+  const imageDataUrl = toDataUrl(
+    normalizedImage.buffer,
+    normalizedImage.mimeType,
+  );
   const analysisError = await analyzeAndPersistMenu({
     upload,
     imageDataUrl,

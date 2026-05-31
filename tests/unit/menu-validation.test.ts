@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   menuFeedbackFormSchema,
   menuUploadFormSchema,
+  validateMenuImageFile,
 } from "@/lib/validations/menu";
 
 describe("menuUploadFormSchema", () => {
@@ -26,5 +27,13 @@ describe("menuFeedbackFormSchema", () => {
     });
 
     expect(result.feedbackType).toBe("allergy_risk");
+  });
+});
+
+describe("validateMenuImageFile", () => {
+  it("accepts HEIC uploads by extension when the browser omits the MIME type", () => {
+    const result = validateMenuImageFile(new File(["menu"], "menu.heic"));
+
+    expect(result.ok).toBe(true);
   });
 });

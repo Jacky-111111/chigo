@@ -41,6 +41,7 @@ Stage 1 has a live `package.json` based on this template. When dependencies chan
     "class-variance-authority": "0.7.1",
     "clsx": "2.1.1",
     "framer-motion": "12.40.0",
+    "heic-convert": "2.1.0",
     "lucide-react": "1.16.0",
     "next": "15.5.18",
     "react": "19.2.6",

@@ -33,11 +33,14 @@ export function MenuUploadForm({
           </p>
         </div>
 
-        <Field label="Photo" hint="JPEG, PNG, WebP, HEIC, or HEIF. Max 10 MB.">
+        <Field
+          label="Photo"
+          hint="JPEG, PNG, WebP, HEIC, or HEIF. HEIC/HEIF uploads are converted to JPEG. Max 10 MB."
+        >
           <Input
             name="image"
             type="file"
-            accept="image/jpeg,image/png,image/webp,image/heic,image/heif"
+            accept="image/jpeg,image/png,image/webp,image/heic,image/heif,.jpg,.jpeg,.png,.webp,.heic,.heif"
             required
             className="file:mr-3 file:rounded-[8px] file:border-0 file:bg-[var(--brand-eggplant)] file:px-3 file:py-2 file:text-sm file:font-semibold file:text-white"
           />
