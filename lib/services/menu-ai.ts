@@ -33,6 +33,11 @@ export type MenuAiResult = {
   analysis: MenuAnalysisResult;
 };
 
+export const defaultMenuAnalysisTimeoutMs = 60_000;
+
+const minMenuAnalysisTimeoutMs = 10_000;
+const maxMenuAnalysisTimeoutMs = 120_000;
+
 const menuAnalysisJsonSchema = {
   type: "object",
   additionalProperties: false,
@@ -131,7 +136,21 @@ export function getMenuAiConfig() {
   return {
     provider: "openai" as const,
     model: process.env.OPENAI_MENU_MODEL ?? "gpt-4o-mini",
+    timeoutMs: getMenuAnalysisTimeoutMs(process.env.OPENAI_MENU_TIMEOUT_MS),
   };
+}
+
+export function getMenuAnalysisTimeoutMs(value?: string) {
+  const parsed = Number(value);
+
+  if (!Number.isFinite(parsed)) {
+    return defaultMenuAnalysisTimeoutMs;
+  }
+
+  return Math.min(
+    Math.max(Math.trunc(parsed), minMenuAnalysisTimeoutMs),
+    maxMenuAnalysisTimeoutMs,
+  );
 }
 
 export async function analyzeMenuImage({
@@ -154,44 +173,61 @@ export async function analyzeMenuImage({
     );
   }
 
-  const response = await fetch("https://api.openai.com/v1/responses", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      model: config.model,
-      input: [
-        {
-          role: "user",
-          content: [
-            {
-              type: "input_text",
-              text: buildMenuPrompt({
-                targetLanguage,
-                preferences,
-                restaurantName,
-              }),
-            },
-            {
-              type: "input_image",
-              image_url: imageDataUrl,
-              detail: "high",
-            },
-          ],
-        },
-      ],
-      text: {
-        format: {
-          type: "json_schema",
-          name: "chigo_menu_analysis",
-          strict: true,
-          schema: menuAnalysisJsonSchema,
-        },
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), config.timeoutMs);
+  let response: Response;
+
+  try {
+    response = await fetch("https://api.openai.com/v1/responses", {
+      method: "POST",
+      signal: controller.signal,
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
       },
-    }),
-  });
+      body: JSON.stringify({
+        model: config.model,
+        input: [
+          {
+            role: "user",
+            content: [
+              {
+                type: "input_text",
+                text: buildMenuPrompt({
+                  targetLanguage,
+                  preferences,
+                  restaurantName,
+                }),
+              },
+              {
+                type: "input_image",
+                image_url: imageDataUrl,
+                detail: "high",
+              },
+            ],
+          },
+        ],
+        text: {
+          format: {
+            type: "json_schema",
+            name: "chigo_menu_analysis",
+            strict: true,
+            schema: menuAnalysisJsonSchema,
+          },
+        },
+      }),
+    });
+  } catch (error) {
+    if (isAbortError(error)) {
+      throw new Error(
+        `OpenAI menu analysis timed out after ${Math.round(config.timeoutMs / 1000)} seconds. Please retry analysis.`,
+      );
+    }
+
+    throw error;
+  } finally {
+    clearTimeout(timeoutId);
+  }
 
   const payload = (await response.json().catch(() => null)) as unknown;
 
@@ -207,9 +243,19 @@ export async function analyzeMenuImage({
   const analysis = menuAnalysisSchema.parse(parsedJson);
 
   return {
-    ...config,
+    provider: config.provider,
+    model: config.model,
     analysis,
   };
+}
+
+function isAbortError(error: unknown) {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    "name" in error &&
+    error.name === "AbortError"
+  );
 }
 
 function buildMenuPrompt({

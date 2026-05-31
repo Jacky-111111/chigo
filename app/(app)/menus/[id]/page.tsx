@@ -8,6 +8,7 @@ import {
   RefreshCcw,
   ScanText,
 } from "lucide-react";
+import { MenuAnalysisProgress } from "@/components/menus/menu-analysis-progress";
 import { MenuItemCard } from "@/components/menus/menu-item-card";
 import { statusLabel } from "@/components/menus/menu-upload-summary-card";
 import { Badge } from "@/components/ui/badge";
@@ -16,6 +17,12 @@ import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { SubmitButton } from "@/components/ui/submit-button";
 import { retryMenuAnalysis } from "@/lib/actions/menu-actions";
+import {
+  canRetryMenuAnalysis,
+  getMenuAnalysisStartedAt,
+  isMenuAnalysisPending,
+  menuAnalysisStaleAfterMs,
+} from "@/lib/services/menu-analysis-state";
 import { getMenuAnalysis } from "@/lib/services/menus";
 import { requireCompletedProfile, requireUser } from "@/lib/services/profiles";
 
@@ -55,6 +62,11 @@ export default async function MenuDetailPage({
       : menu.status === "completed"
         ? "warm"
         : "indigo";
+  const canRetryAnalysis = canRetryMenuAnalysis(menu);
+  const isPendingAnalysis = isMenuAnalysisPending(menu.status);
+  const analysisStartedAt = isPendingAnalysis
+    ? getMenuAnalysisStartedAt(menu)
+    : null;
 
   return (
     <section className="page-shell grid gap-6">
@@ -94,7 +106,7 @@ export default async function MenuDetailPage({
                 </Link>
               </Button>
             ) : null}
-            {menu.status === "failed" ? (
+            {canRetryAnalysis ? (
               <form action={retryMenuAnalysis}>
                 <input type="hidden" name="menuUploadId" value={menu.id} />
                 <SubmitButton
@@ -197,10 +209,32 @@ export default async function MenuDetailPage({
               title="Analysis failed"
               description="The image is saved. Retry after checking that the menu is clear and the AI provider key is configured."
             />
+          ) : isPendingAnalysis && analysisStartedAt ? (
+            <Card className="grid gap-4 p-5">
+              <div className="flex items-start gap-3">
+                <div className="grid size-10 shrink-0 place-items-center rounded-[8px] bg-[rgba(236,178,45,0.16)] text-[var(--food-tangerine)]">
+                  <ScanText size={20} />
+                </div>
+                <div className="grid gap-1">
+                  <h2 className="text-lg font-black text-[var(--brand-eggplant)]">
+                    Analysis in progress
+                  </h2>
+                  <p className="text-sm leading-6 text-[var(--text-muted)]">
+                    ChiGo is reading the image, extracting dishes, and matching
+                    the results to your preferences.
+                  </p>
+                </div>
+              </div>
+              <MenuAnalysisProgress
+                startedAt={analysisStartedAt}
+                staleAfterMs={menuAnalysisStaleAfterMs}
+                refreshIntervalMs={7000}
+              />
+            </Card>
           ) : (
             <EmptyState
-              title="Analysis in progress"
-              description="The menu has been uploaded and is waiting for AI processing to complete."
+              title="Analysis unavailable"
+              description="This menu analysis is not ready yet. Try refreshing the page in a moment."
             />
           )}
         </div>

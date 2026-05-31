@@ -4,6 +4,10 @@ import { Buffer } from "node:buffer";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import {
+  canRetryMenuAnalysis,
+  isMenuAnalysisPending,
+} from "@/lib/services/menu-analysis-state";
 import { analyzeMenuImage, getMenuAiConfig } from "@/lib/services/menu-ai";
 import { normalizeMenuImage } from "@/lib/services/menu-image";
 import { requireCompletedProfile, requireUser } from "@/lib/services/profiles";
@@ -132,6 +136,11 @@ export async function retryMenuAnalysis(formData: FormData) {
   }
 
   const upload = uploadData as MenuUpload;
+
+  if (!canRetryMenuAnalysis(upload)) {
+    menuError(`/menus/${upload.id}`, getRetryBlockedMessage(upload.status));
+  }
+
   const { data: imageBlob, error: downloadError } = await supabase.storage
     .from("menu-images")
     .download(upload.image_url);
@@ -219,6 +228,7 @@ async function analyzeAndPersistMenu({
   const supabase = await createClient();
   const config = getMenuAiConfig();
 
+  // Stage 2 runs analysis inline; a future queue should call this persistence path.
   await supabase
     .from("menu_uploads")
     .update({
@@ -351,4 +361,12 @@ function getErrorMessage(error: unknown) {
   }
 
   return "Menu analysis failed. Please retry in a minute.";
+}
+
+function getRetryBlockedMessage(status: MenuUpload["status"]) {
+  if (isMenuAnalysisPending(status)) {
+    return "Menu analysis is still running. Retry becomes available if it takes more than a few minutes.";
+  }
+
+  return "This menu analysis cannot be retried from its current state.";
 }

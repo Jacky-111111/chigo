@@ -56,9 +56,11 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=
 NEXT_PUBLIC_APP_URL=http://localhost:3000
 OPENAI_API_KEY=
 OPENAI_MENU_MODEL=gpt-4o-mini
+OPENAI_MENU_TIMEOUT_MS=60000
 ```
 
 Stage 2 menu analysis needs `OPENAI_API_KEY`. `OPENAI_MENU_MODEL` can be changed without code edits if the AI provider model changes later.
+`OPENAI_MENU_TIMEOUT_MS` defaults to `60000` when omitted and is clamped between 10 and 120 seconds.
 
 ## Supabase Setup
 
