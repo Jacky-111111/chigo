@@ -1,5 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { hasSupabaseEnv } from "@/lib/supabase/env";
+import { listOpenInvitesForRestaurant } from "@/lib/services/invites";
+import { listRestaurantMenuAnalyses } from "@/lib/services/menus";
 import { CMU_LOCATION, sortRestaurantsByDistance } from "@/lib/utils/location";
 import type { Restaurant } from "@/types/database";
 
@@ -39,4 +41,26 @@ export async function getRestaurantById(restaurantId: string) {
   }
 
   return data as Restaurant | null;
+}
+
+export async function getRestaurantDetail(
+  restaurantId: string,
+  currentUserId: string,
+) {
+  const restaurant = await getRestaurantById(restaurantId);
+
+  if (!restaurant) {
+    return null;
+  }
+
+  const [activeInvites, menuAnalyses] = await Promise.all([
+    listOpenInvitesForRestaurant(currentUserId, restaurantId),
+    listRestaurantMenuAnalyses(restaurantId),
+  ]);
+
+  return {
+    restaurant,
+    activeInvites,
+    menuAnalyses,
+  };
 }

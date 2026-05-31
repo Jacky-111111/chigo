@@ -1,4 +1,10 @@
-export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
+export type Json =
+  | string
+  | number
+  | boolean
+  | null
+  | { [key: string]: Json | undefined }
+  | Json[];
 
 export type Database = {
   public: {
@@ -52,7 +58,9 @@ export type Database = {
           created_at?: string;
           updated_at?: string;
         };
-        Update: Partial<Database["public"]["Tables"]["user_dining_preferences"]["Insert"]>;
+        Update: Partial<
+          Database["public"]["Tables"]["user_dining_preferences"]["Insert"]
+        >;
         Relationships: [];
       };
       restaurants: {
@@ -114,7 +122,9 @@ export type Database = {
           created_at?: string;
           updated_at?: string;
         };
-        Update: Partial<Database["public"]["Tables"]["dining_invites"]["Insert"]>;
+        Update: Partial<
+          Database["public"]["Tables"]["dining_invites"]["Insert"]
+        >;
         Relationships: [];
       };
       dining_invite_participants: {
@@ -136,7 +146,109 @@ export type Database = {
           joined_at?: string;
           left_at?: string | null;
         };
-        Update: Partial<Database["public"]["Tables"]["dining_invite_participants"]["Insert"]>;
+        Update: Partial<
+          Database["public"]["Tables"]["dining_invite_participants"]["Insert"]
+        >;
+        Relationships: [];
+      };
+      menu_uploads: {
+        Row: {
+          id: string;
+          user_id: string;
+          restaurant_id: string | null;
+          image_url: string;
+          status: "uploaded" | "processing" | "completed" | "failed";
+          source_language: string | null;
+          target_language: string;
+          extracted_text: string | null;
+          ai_provider: string | null;
+          ai_model: string | null;
+          error_message: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          restaurant_id?: string | null;
+          image_url: string;
+          status?: "uploaded" | "processing" | "completed" | "failed";
+          source_language?: string | null;
+          target_language?: string;
+          extracted_text?: string | null;
+          ai_provider?: string | null;
+          ai_model?: string | null;
+          error_message?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["menu_uploads"]["Insert"]>;
+        Relationships: [];
+      };
+      menu_items: {
+        Row: {
+          id: string;
+          menu_upload_id: string;
+          original_name: string;
+          translated_name: string | null;
+          description: string | null;
+          ingredients: string[];
+          cooking_method: string | null;
+          cuisine_context: string | null;
+          dietary_warnings: string[];
+          recommendation_score: number | null;
+          recommendation_reason: string | null;
+          confidence: number | null;
+          sort_order: number;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          menu_upload_id: string;
+          original_name: string;
+          translated_name?: string | null;
+          description?: string | null;
+          ingredients?: string[];
+          cooking_method?: string | null;
+          cuisine_context?: string | null;
+          dietary_warnings?: string[];
+          recommendation_score?: number | null;
+          recommendation_reason?: string | null;
+          confidence?: number | null;
+          sort_order: number;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["menu_items"]["Insert"]>;
+        Relationships: [];
+      };
+      menu_feedback: {
+        Row: {
+          id: string;
+          user_id: string;
+          menu_item_id: string;
+          feedback_type:
+            | "incorrect_translation"
+            | "wrong_ingredients"
+            | "allergy_risk"
+            | "other";
+          note: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          menu_item_id: string;
+          feedback_type:
+            | "incorrect_translation"
+            | "wrong_ingredients"
+            | "allergy_risk"
+            | "other";
+          note?: string | null;
+          created_at?: string;
+        };
+        Update: Partial<
+          Database["public"]["Tables"]["menu_feedback"]["Insert"]
+        >;
         Relationships: [];
       };
     };
@@ -148,8 +260,15 @@ export type Database = {
 };
 
 export type Profile = Database["public"]["Tables"]["profiles"]["Row"];
-export type DiningPreference = Database["public"]["Tables"]["user_dining_preferences"]["Row"];
+export type DiningPreference =
+  Database["public"]["Tables"]["user_dining_preferences"]["Row"];
 export type Restaurant = Database["public"]["Tables"]["restaurants"]["Row"];
-export type DiningInvite = Database["public"]["Tables"]["dining_invites"]["Row"];
+export type DiningInvite =
+  Database["public"]["Tables"]["dining_invites"]["Row"];
 export type DiningInviteParticipant =
   Database["public"]["Tables"]["dining_invite_participants"]["Row"];
+export type MenuUpload = Database["public"]["Tables"]["menu_uploads"]["Row"];
+export type MenuUploadStatus = MenuUpload["status"];
+export type MenuItem = Database["public"]["Tables"]["menu_items"]["Row"];
+export type MenuFeedback = Database["public"]["Tables"]["menu_feedback"]["Row"];
+export type MenuFeedbackType = MenuFeedback["feedback_type"];

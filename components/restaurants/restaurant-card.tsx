@@ -1,6 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
-import { MapPin, Navigation, Plus, Utensils } from "lucide-react";
+import { BookOpenText, MapPin, Navigation, Plus, Utensils } from "lucide-react";
 import type { Restaurant } from "@/types/database";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -49,21 +49,33 @@ export function RestaurantCard({
           </div>
 
           <div className="flex flex-wrap gap-2">
-            {restaurant.cuisine ? <Badge variant="warm">{restaurant.cuisine}</Badge> : null}
+            {restaurant.cuisine ? (
+              <Badge variant="warm">{restaurant.cuisine}</Badge>
+            ) : null}
             <Badge variant="neutral">{restaurant.address}</Badge>
           </div>
         </div>
 
         <div className="grid gap-2 sm:grid-cols-2">
           <Button asChild>
+            <Link href={`/restaurants/${restaurant.id}`}>
+              <BookOpenText size={16} />
+              Details
+            </Link>
+          </Button>
+          <Button asChild variant="secondary">
             <Link href={`/invites/new?restaurantId=${restaurant.id}`}>
               <Plus size={16} />
               Invite
             </Link>
           </Button>
           {restaurant.google_maps_url ? (
-            <Button asChild variant="secondary">
-              <a href={restaurant.google_maps_url} target="_blank" rel="noreferrer">
+            <Button asChild variant="secondary" className="sm:col-span-2">
+              <a
+                href={restaurant.google_maps_url}
+                target="_blank"
+                rel="noreferrer"
+              >
                 <Navigation size={16} />
                 Directions
               </a>

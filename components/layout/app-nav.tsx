@@ -2,15 +2,38 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { CalendarPlus, MapPin, Settings, Users, Utensils } from "lucide-react";
+import {
+  BookOpenText,
+  CalendarPlus,
+  MapPin,
+  Settings,
+  Users,
+  Utensils,
+} from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { Button } from "@/components/ui/button";
 
 const items = [
-  { href: "/invites", label: "Invites", icon: Users },
-  { href: "/restaurants", label: "Restaurants", icon: MapPin },
-  { href: "/invites/new", label: "New invite", icon: CalendarPlus },
-  { href: "/settings", label: "Settings", icon: Settings },
+  { href: "/invites", label: "Invites", mobileLabel: "Invites", icon: Users },
+  {
+    href: "/restaurants",
+    label: "Restaurants",
+    mobileLabel: "Food",
+    icon: MapPin,
+  },
+  { href: "/menus", label: "Menus", mobileLabel: "Menus", icon: BookOpenText },
+  {
+    href: "/invites/new",
+    label: "New invite",
+    mobileLabel: "New",
+    icon: CalendarPlus,
+  },
+  {
+    href: "/settings",
+    label: "Settings",
+    mobileLabel: "Settings",
+    icon: Settings,
+  },
 ];
 
 export function AppNav({ displayName }: { displayName?: string | null }) {
@@ -19,16 +42,22 @@ export function AppNav({ displayName }: { displayName?: string | null }) {
   return (
     <header className="sticky top-0 z-30 border-b border-[var(--border)] bg-white/90 backdrop-blur">
       <div className="page-shell flex min-h-16 items-center justify-between gap-4">
-        <Link href="/invites" className="flex items-center gap-3 text-[var(--brand-eggplant)]">
+        <Link
+          href="/invites"
+          className="flex items-center gap-3 text-[var(--brand-eggplant)]"
+        >
           <span className="grid size-10 place-items-center rounded-[8px] bg-[var(--brand-eggplant)] text-white">
             <Utensils size={20} />
           </span>
           <span className="text-xl font-black">ChiGo</span>
         </Link>
 
-        <nav className="hidden items-center gap-1 md:flex" aria-label="Main navigation">
+        <nav
+          className="hidden items-center gap-1 md:flex"
+          aria-label="Main navigation"
+        >
           {items.map((item) => {
-            const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
+            const active = isActiveRoute(pathname, item.href);
             const Icon = item.icon;
 
             return (
@@ -57,9 +86,12 @@ export function AppNav({ displayName }: { displayName?: string | null }) {
         </div>
       </div>
 
-      <nav className="page-shell grid grid-cols-4 gap-1 pb-2 md:hidden" aria-label="Mobile navigation">
+      <nav
+        className="page-shell grid grid-cols-5 gap-1 pb-2 md:hidden"
+        aria-label="Mobile navigation"
+      >
         {items.map((item) => {
-          const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
+          const active = isActiveRoute(pathname, item.href);
           const Icon = item.icon;
 
           return (
@@ -72,11 +104,26 @@ export function AppNav({ displayName }: { displayName?: string | null }) {
               )}
             >
               <Icon size={17} />
-              <span className="mt-1">{item.label}</span>
+              <span className="mt-1">{item.mobileLabel}</span>
             </Link>
           );
         })}
       </nav>
     </header>
   );
+}
+
+function isActiveRoute(pathname: string, href: string) {
+  if (href === "/invites") {
+    return (
+      pathname === "/invites" ||
+      (pathname.startsWith("/invites/") && pathname !== "/invites/new")
+    );
+  }
+
+  if (href === "/invites/new") {
+    return pathname === "/invites/new";
+  }
+
+  return pathname === href || pathname.startsWith(`${href}/`);
 }

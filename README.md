@@ -2,7 +2,7 @@
 
 ChiGo is an AI-powered dining companion for students, starting with Carnegie Mellon University in Pittsburgh.
 
-Stage 1 is the current implementation target: authentication, editable user settings, nearby restaurants, and instant dining invites.
+Stage 2 is the current implementation target: authentication, editable user settings, nearby restaurants, instant dining invites, and the first AI menu assistant.
 
 ## Local Setup
 
@@ -46,6 +46,38 @@ Then open:
 
 [http://127.0.0.1:3000](http://127.0.0.1:3000)
 
+## Environment Variables
+
+Copy `.env.example` into `.env.local` and fill in the configured values:
+
+```bash
+NEXT_PUBLIC_SUPABASE_URL=
+NEXT_PUBLIC_SUPABASE_ANON_KEY=
+NEXT_PUBLIC_APP_URL=http://localhost:3000
+OPENAI_API_KEY=
+OPENAI_MENU_MODEL=gpt-5.2
+```
+
+Stage 2 menu analysis needs `OPENAI_API_KEY`. `OPENAI_MENU_MODEL` can be changed without code edits if the AI provider model changes later.
+
+## Supabase Setup
+
+Run the migrations in order:
+
+```bash
+db/migrations/0001_stage1_schema.sql
+db/migrations/0002_stage2_menu_assistant.sql
+db/migrations/0003_stage2_advisor_fixes.sql
+```
+
+Then seed restaurants if needed:
+
+```bash
+db/seed/stage1_restaurants.sql
+```
+
+The Stage 2 migration creates the private `menu-images` storage bucket plus RLS policies for menu uploads, menu items, feedback, and owned image paths.
+
 ## Useful Commands
 
 ```bash
@@ -76,6 +108,17 @@ After Supabase is configured:
 5. Create an invite from `/invites/new`.
 6. View open invites at `/invites`.
 7. Open an invite detail page to join, leave, or cancel.
+
+## Stage 2 Flow
+
+After Supabase and OpenAI are configured:
+
+1. Visit `/menus`.
+2. Upload a menu image from `/menus/new`.
+3. Optionally link it to a restaurant.
+4. Open `/menus/[id]` to review translations, dish explanations, dietary warnings, and personalized recommendations.
+5. Submit feedback on incorrect AI output when needed.
+6. Open `/restaurants/[id]` to see restaurant info, active invites, and linked menu analyses.
 
 ## Docs
 

@@ -1,6 +1,11 @@
 import { createClient } from "@/lib/supabase/server";
 import { hasSupabaseEnv } from "@/lib/supabase/env";
-import type { DiningInvite, DiningInviteParticipant, Profile, Restaurant } from "@/types/database";
+import type {
+  DiningInvite,
+  DiningInviteParticipant,
+  Profile,
+  Restaurant,
+} from "@/types/database";
 
 export type InviteWithDetails = DiningInvite & {
   restaurant: Restaurant;
@@ -10,7 +15,10 @@ export type InviteWithDetails = DiningInvite & {
 
 export type InviteFilter = "all" | "starting-soon" | "open-spots" | "mine";
 
-export async function listOpenInvites(currentUserId: string, filter: InviteFilter = "all") {
+export async function listOpenInvites(
+  currentUserId: string,
+  filter: InviteFilter = "all",
+) {
   if (!hasSupabaseEnv()) {
     return [] satisfies InviteWithDetails[];
   }
@@ -33,11 +41,15 @@ export async function listOpenInvites(currentUserId: string, filter: InviteFilte
   const detailed = await hydrateInvites((invites ?? []) as DiningInvite[]);
 
   return detailed.filter((invite) => {
-    const joinedCount = invite.participants.filter((participant) => participant.status === "joined").length;
+    const joinedCount = invite.participants.filter(
+      (participant) => participant.status === "joined",
+    ).length;
     const isMine =
       invite.host_id === currentUserId ||
       invite.participants.some(
-        (participant) => participant.user_id === currentUserId && participant.status === "joined",
+        (participant) =>
+          participant.user_id === currentUserId &&
+          participant.status === "joined",
       );
 
     if (filter === "starting-soon") {
@@ -53,6 +65,48 @@ export async function listOpenInvites(currentUserId: string, filter: InviteFilte
     }
 
     return true;
+  });
+}
+
+export async function listOpenInvitesForRestaurant(
+  currentUserId: string,
+  restaurantId: string,
+) {
+  if (!hasSupabaseEnv()) {
+    return [] satisfies InviteWithDetails[];
+  }
+
+  const supabase = await createClient();
+  const now = new Date().toISOString();
+
+  const { data: invites, error } = await supabase
+    .from("dining_invites")
+    .select("*")
+    .eq("visibility", "campus_public")
+    .eq("status", "open")
+    .eq("restaurant_id", restaurantId)
+    .gt("expires_at", now)
+    .order("start_at", { ascending: true });
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  const detailed = await hydrateInvites((invites ?? []) as DiningInvite[]);
+
+  return detailed.filter((invite) => {
+    const joinedCount = invite.participants.filter(
+      (participant) => participant.status === "joined",
+    ).length;
+    const isMine =
+      invite.host_id === currentUserId ||
+      invite.participants.some(
+        (participant) =>
+          participant.user_id === currentUserId &&
+          participant.status === "joined",
+      );
+
+    return joinedCount < invite.max_participants || isMine;
   });
 }
 
@@ -86,7 +140,9 @@ async function hydrateInvites(invites: DiningInvite[]) {
   }
 
   const supabase = await createClient();
-  const restaurantIds = [...new Set(invites.map((invite) => invite.restaurant_id))];
+  const restaurantIds = [
+    ...new Set(invites.map((invite) => invite.restaurant_id)),
+  ];
   const hostIds = [...new Set(invites.map((invite) => invite.host_id))];
   const inviteIds = invites.map((invite) => invite.id);
 
@@ -121,12 +177,19 @@ async function hydrateInvites(invites: DiningInvite[]) {
   const participantRows = (participants ?? []) as DiningInviteParticipant[];
 
   const participantProfiles = participantRows.length
-    ? await getProfilesByIds([...new Set(participantRows.map((participant) => participant.user_id))])
+    ? await getProfilesByIds([
+        ...new Set(participantRows.map((participant) => participant.user_id)),
+      ])
     : new Map<string, Profile>();
 
-  const restaurantMap = new Map(restaurantRows.map((restaurant) => [restaurant.id, restaurant]));
+  const restaurantMap = new Map(
+    restaurantRows.map((restaurant) => [restaurant.id, restaurant]),
+  );
   const hostMap = new Map(hostRows.map((host) => [host.id, host]));
-  const participantsByInvite = new Map<string, Array<DiningInviteParticipant & { profile: Profile }>>();
+  const participantsByInvite = new Map<
+    string,
+    Array<DiningInviteParticipant & { profile: Profile }>
+  >();
 
   for (const participant of participantRows) {
     const profile = participantProfiles.get(participant.user_id);
@@ -165,11 +228,16 @@ async function getProfilesByIds(profileIds: string[]) {
   }
 
   const supabase = await createClient();
-  const { data, error } = await supabase.from("profiles").select("*").in("id", profileIds);
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("*")
+    .in("id", profileIds);
 
   if (error) {
     throw new Error(error.message);
   }
 
-  return new Map(((data ?? []) as Profile[]).map((profile) => [profile.id, profile]));
+  return new Map(
+    ((data ?? []) as Profile[]).map((profile) => [profile.id, profile]),
+  );
 }
