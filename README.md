@@ -55,7 +55,7 @@ NEXT_PUBLIC_SUPABASE_URL=
 NEXT_PUBLIC_SUPABASE_ANON_KEY=
 NEXT_PUBLIC_APP_URL=http://localhost:3000
 OPENAI_API_KEY=
-OPENAI_MENU_MODEL=gpt-5.2
+OPENAI_MENU_MODEL=gpt-4o-mini
 ```
 
 Stage 2 menu analysis needs `OPENAI_API_KEY`. `OPENAI_MENU_MODEL` can be changed without code edits if the AI provider model changes later.

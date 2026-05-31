@@ -130,7 +130,7 @@ const menuAnalysisJsonSchema = {
 export function getMenuAiConfig() {
   return {
     provider: "openai" as const,
-    model: process.env.OPENAI_MENU_MODEL ?? "gpt-5.2",
+    model: process.env.OPENAI_MENU_MODEL ?? "gpt-4o-mini",
   };
 }
 
