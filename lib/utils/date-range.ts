@@ -53,6 +53,19 @@ export function getWeekStartDateString(dateString: string) {
   return addDays(dateString, diff);
 }
 
+export function getMonthStartDateString(dateString: string) {
+  const { year, month } = parseDateString(dateString);
+
+  return `${year}-${String(month).padStart(2, "0")}-01`;
+}
+
+export function addMonths(dateString: string, months: number) {
+  const { year, month } = parseDateString(dateString);
+  const date = new Date(Date.UTC(year, month - 1 + months, 1, 12));
+
+  return date.toISOString().slice(0, 10);
+}
+
 export function addDays(dateString: string, days: number) {
   const { year, month, day } = parseDateString(dateString);
   const date = new Date(Date.UTC(year, month - 1, day + days, 12));

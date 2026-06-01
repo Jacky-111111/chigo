@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
+  addMonths,
   getLocalDayUtcRange,
+  getMonthStartDateString,
   getWeekStartDateString,
   parseDateTimeLocalInTimeZone,
 } from "@/lib/utils/date-range";
@@ -29,5 +31,13 @@ describe("getWeekStartDateString", () => {
   it("uses Monday as the first day of the week", () => {
     expect(getWeekStartDateString("2026-06-07")).toBe("2026-06-01");
     expect(getWeekStartDateString("2026-06-03")).toBe("2026-06-01");
+  });
+});
+
+describe("month helpers", () => {
+  it("normalizes month starts and shifts months", () => {
+    expect(getMonthStartDateString("2026-06-18")).toBe("2026-06-01");
+    expect(addMonths("2026-01-01", -1)).toBe("2025-12-01");
+    expect(addMonths("2026-12-01", 1)).toBe("2027-01-01");
   });
 });

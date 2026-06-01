@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Activity, CalendarDays, PieChart, Plus, Target } from "lucide-react";
+import { MealCheckInCalendar } from "@/components/meals/meal-check-in-calendar";
 import { MealCard } from "@/components/meals/meal-card";
 import { MacroDistributionChart } from "@/components/meals/macro-distribution-chart";
 import { NutritionGoalProgress } from "@/components/meals/nutrition-goal-progress";
@@ -13,6 +14,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { Input } from "@/components/ui/input";
 import {
   getDailyMealJournal,
+  getMealCheckInCalendar,
   getNutritionGoals,
   getWeeklyNutritionSummary,
 } from "@/lib/services/meals";
@@ -43,10 +45,11 @@ export default async function MealsPage({ searchParams }: MealsPageProps) {
   await requireCompletedProfile(user.id);
   const date = normalizeDateString(params?.date);
   const weekStart = getWeekStartDateString(date);
-  const [journal, weekSummary, goals] = await Promise.all([
+  const [journal, weekSummary, goals, checkInCalendar] = await Promise.all([
     getDailyMealJournal(user.id, date),
     getWeeklyNutritionSummary(user.id, weekStart),
     getNutritionGoals(user.id),
+    getMealCheckInCalendar(user.id, date),
   ]);
 
   return (
@@ -137,6 +140,8 @@ export default async function MealsPage({ searchParams }: MealsPageProps) {
           }
         />
       </div>
+
+      <MealCheckInCalendar calendar={checkInCalendar} />
 
       <div className="grid gap-4 lg:grid-cols-[1.35fr_1fr]">
         <Card className="grid gap-4 p-5">

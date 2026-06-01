@@ -2,8 +2,12 @@ import { createClient } from "@/lib/supabase/server";
 import { hasSupabaseEnv } from "@/lib/supabase/env";
 import {
   addDays,
+  addMonths,
   appTimeZone,
+  formatDateStringInTimeZone,
   getLocalDayUtcRange,
+  getMonthStartDateString,
+  getTodayDateString,
   getWeekStartDateString,
 } from "@/lib/utils/date-range";
 import type {
@@ -47,6 +51,44 @@ export type MacroCalorieDistribution = {
   fat: number;
   carbs: number;
   total: number;
+};
+
+export type MealCheckInSlotKey = "breakfast" | "lunch" | "dinner";
+
+export type MealCheckInSlot = {
+  key: MealCheckInSlotKey;
+  label: string;
+  shortLabel: string;
+  count: number;
+  completed: boolean;
+};
+
+export type MealCheckInCalendarDay = {
+  date: string;
+  dayOfMonth: number;
+  inCurrentMonth: boolean;
+  isSelected: boolean;
+  isToday: boolean;
+  mealCount: number;
+  completedSlots: number;
+  isCompleteDay: boolean;
+  slots: MealCheckInSlot[];
+};
+
+export type MealCheckInCalendar = {
+  monthStartDate: string;
+  previousMonthDate: string;
+  nextMonthDate: string;
+  monthLabel: string;
+  daysInMonth: number;
+  days: MealCheckInCalendarDay[];
+  loggedDays: number;
+  perfectDays: number;
+  completedCheckIns: number;
+  possibleCheckIns: number;
+  completionPercent: number;
+  currentStreak: number;
+  longestStreak: number;
 };
 
 export type DailyMealJournal = {
@@ -151,6 +193,65 @@ export async function getDailyMealJournal(userId: string, date: string) {
     timingBuckets: getMealTimingBuckets(meals),
     largestMeal: getLargestMeal(meals),
   } satisfies DailyMealJournal;
+}
+
+export async function getMealCheckInCalendar(
+  userId: string,
+  selectedDate: string,
+) {
+  const monthStartDate = getMonthStartDateString(selectedDate);
+  const nextMonthDate = addMonths(monthStartDate, 1);
+  const previousMonthDate = addMonths(monthStartDate, -1);
+  const calendarStartDate = addDays(
+    monthStartDate,
+    -getCalendarDayOfWeek(monthStartDate),
+  );
+  const calendarEndDate = addDays(calendarStartDate, 42);
+  const todayDate = getTodayDateString();
+  const [{ startIso }, { startIso: endIso }] = [
+    getLocalDayUtcRange(calendarStartDate),
+    getLocalDayUtcRange(calendarEndDate),
+  ];
+  const [{ startIso: streakStartIso }, { startIso: streakEndIso }] = [
+    getLocalDayUtcRange(addDays(todayDate, -90)),
+    getLocalDayUtcRange(addDays(todayDate, 1)),
+  ];
+  const [calendarMeals, streakMeals] = await Promise.all([
+    listMealLogRowsInRange(userId, startIso, endIso),
+    listMealLogRowsInRange(userId, streakStartIso, streakEndIso),
+  ]);
+  const days = buildMealCheckInDays({
+    calendarStartDate,
+    meals: calendarMeals,
+    monthStartDate,
+    selectedDate,
+    todayDate,
+  });
+  const monthDays = days.filter((day) => day.inCurrentMonth);
+  const possibleCheckIns = monthDays.length * mealCheckInSlots.length;
+  const completedCheckIns = monthDays.reduce(
+    (sum, day) => sum + day.completedSlots,
+    0,
+  );
+
+  return {
+    monthStartDate,
+    previousMonthDate,
+    nextMonthDate,
+    monthLabel: formatMonthLabel(monthStartDate),
+    daysInMonth: monthDays.length,
+    days,
+    loggedDays: monthDays.filter((day) => day.mealCount > 0).length,
+    perfectDays: monthDays.filter((day) => day.isCompleteDay).length,
+    completedCheckIns,
+    possibleCheckIns,
+    completionPercent:
+      possibleCheckIns === 0
+        ? 0
+        : Math.round((completedCheckIns / possibleCheckIns) * 100),
+    currentStreak: calculateCurrentMealStreak(streakMeals, todayDate),
+    longestStreak: calculateLongestMealStreak(monthDays),
+  } satisfies MealCheckInCalendar;
 }
 
 export async function getMealDetail(mealId: string, userId: string) {
@@ -285,6 +386,31 @@ async function listMealLogsInRange(
   }
 
   return hydrateMealLogs((data ?? []) as MealLog[]);
+}
+
+async function listMealLogRowsInRange(
+  userId: string,
+  startIso: string,
+  endIso: string,
+) {
+  if (!hasSupabaseEnv()) {
+    return [] satisfies Array<Pick<MealLog, "id" | "eaten_at">>;
+  }
+
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("meal_logs")
+    .select("id,eaten_at")
+    .eq("user_id", userId)
+    .gte("eaten_at", startIso)
+    .lt("eaten_at", endIso)
+    .order("eaten_at", { ascending: true });
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return (data ?? []) as Array<Pick<MealLog, "id" | "eaten_at">>;
 }
 
 async function hydrateMealLogs(meals: MealLog[]) {
@@ -525,6 +651,126 @@ export function getMealTimingBuckets(
   return buckets;
 }
 
+const mealCheckInSlots: Array<{
+  key: MealCheckInSlotKey;
+  label: string;
+  shortLabel: string;
+}> = [
+  { key: "breakfast", label: "Breakfast", shortLabel: "B" },
+  { key: "lunch", label: "Lunch", shortLabel: "L" },
+  { key: "dinner", label: "Dinner", shortLabel: "D" },
+];
+
+export function getMealCheckInSlotKey(
+  value: string,
+): MealCheckInSlotKey | null {
+  const hour = getMealHour(value);
+
+  if (hour >= 5 && hour < 11) {
+    return "breakfast";
+  }
+
+  if (hour >= 11 && hour < 16) {
+    return "lunch";
+  }
+
+  if (hour >= 16 && hour < 23) {
+    return "dinner";
+  }
+
+  return null;
+}
+
+export function buildMealCheckInDays({
+  calendarStartDate,
+  meals,
+  monthStartDate,
+  selectedDate,
+  todayDate,
+}: {
+  calendarStartDate: string;
+  meals: Array<Pick<MealLog, "eaten_at">>;
+  monthStartDate: string;
+  selectedDate: string;
+  todayDate: string;
+}) {
+  const mealsByDate = new Map<string, MealCheckInSlot[]>();
+  const mealCountsByDate = new Map<string, number>();
+  const monthPrefix = monthStartDate.slice(0, 7);
+
+  for (const meal of meals) {
+    const date = formatDateStringInTimeZone(new Date(meal.eaten_at));
+    const slotKey = getMealCheckInSlotKey(meal.eaten_at);
+    mealCountsByDate.set(date, (mealCountsByDate.get(date) ?? 0) + 1);
+
+    if (!slotKey) {
+      continue;
+    }
+
+    const slots = mealsByDate.get(date) ?? createMealCheckInSlots();
+    const slot = slots.find((item) => item.key === slotKey);
+
+    if (slot) {
+      slot.count += 1;
+      slot.completed = true;
+    }
+
+    mealsByDate.set(date, slots);
+  }
+
+  return Array.from({ length: 42 }, (_, index) => {
+    const date = addDays(calendarStartDate, index);
+    const slots = mealsByDate.get(date) ?? createMealCheckInSlots();
+    const completedSlots = slots.filter((slot) => slot.completed).length;
+
+    return {
+      date,
+      dayOfMonth: Number(date.slice(8, 10)),
+      inCurrentMonth: date.startsWith(monthPrefix),
+      isSelected: date === selectedDate,
+      isToday: date === todayDate,
+      mealCount: mealCountsByDate.get(date) ?? 0,
+      completedSlots,
+      isCompleteDay: completedSlots === mealCheckInSlots.length,
+      slots,
+    } satisfies MealCheckInCalendarDay;
+  });
+}
+
+export function calculateCurrentMealStreak(
+  meals: Array<Pick<MealLog, "eaten_at">>,
+  todayDate: string,
+) {
+  const loggedDates = new Set(
+    meals.map((meal) => formatDateStringInTimeZone(new Date(meal.eaten_at))),
+  );
+  let cursor = todayDate;
+  let streak = 0;
+
+  while (loggedDates.has(cursor)) {
+    streak += 1;
+    cursor = addDays(cursor, -1);
+  }
+
+  return streak;
+}
+
+function calculateLongestMealStreak(days: MealCheckInCalendarDay[]) {
+  let current = 0;
+  let longest = 0;
+
+  for (const day of days) {
+    if (day.mealCount > 0) {
+      current += 1;
+      longest = Math.max(longest, current);
+    } else {
+      current = 0;
+    }
+  }
+
+  return longest;
+}
+
 function getTopRestaurants(meals: MealLogWithDetails[]) {
   const counts = new Map<string, number>();
 
@@ -571,6 +817,26 @@ function getMealHour(value: string) {
       timeZone: appTimeZone,
     }).format(new Date(value)),
   );
+}
+
+function createMealCheckInSlots(): MealCheckInSlot[] {
+  return mealCheckInSlots.map((slot) => ({
+    ...slot,
+    count: 0,
+    completed: false,
+  }));
+}
+
+function getCalendarDayOfWeek(dateString: string) {
+  return new Date(`${dateString}T12:00:00.000Z`).getUTCDay();
+}
+
+function formatMonthLabel(dateString: string) {
+  return new Intl.DateTimeFormat("en-US", {
+    month: "long",
+    timeZone: "UTC",
+    year: "numeric",
+  }).format(new Date(`${dateString}T12:00:00.000Z`));
 }
 
 function buildWeeklyInsight(
