@@ -22,13 +22,13 @@ The first launch market is Carnegie Mellon University students in Pittsburgh. Th
 
 ## Stage Specs
 
-| Stage | Spec | Main Outcome |
-| --- | --- | --- |
-| 1 | [Stage 1 Spec](./specs/Stage1.md) | Auth, user settings, nearby restaurants, instant dining invites |
-| 2 | [Stage 2 Spec](./specs/Stage2.md) | AI menu translation, dish explanation, restaurant detail enrichment |
-| 3 | [Stage 3 Spec](./specs/Stage3.md) | Meal logging, nutrition estimates, dietary goals, weekly summaries |
-| 4 | [Stage 4 Spec](./specs/Stage4.md) | Friends, group scheduling, open seats, calendar sharing |
-| 5 | [Stage 5 Spec](./specs/Stage5.md) | Mobile app, notifications, real-time chat, reservations, broader launch |
+| Stage | Spec                              | Main Outcome                                                                 |
+| ----- | --------------------------------- | ---------------------------------------------------------------------------- |
+| 1     | [Stage 1 Spec](./specs/Stage1.md) | Auth, user settings, nearby restaurants, instant dining invites              |
+| 2     | [Stage 2 Spec](./specs/Stage2.md) | AI menu translation, dish explanation, restaurant detail enrichment          |
+| 3     | [Stage 3 Spec](./specs/Stage3.md) | Meal logging, nutrition estimates, dietary goals, weekly summaries           |
+| 4     | [Stage 4 Spec](./specs/Stage4.md) | Friends, group scheduling, open seats, realtime group chat, calendar sharing |
+| 5     | [Stage 5 Spec](./specs/Stage5.md) | Mobile app, push notifications, reservations, broader launch                 |
 
 ## Stage Strategy
 

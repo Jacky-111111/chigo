@@ -1,12 +1,12 @@
 # ChiGo Stage 5 Spec
 
-Stage: Mobile, Realtime Communication, Reservations, and Scale
+Stage: Mobile, Notifications, Reservations, and Scale
 
 Shared tech stack: [../TECH_STACK.md](../TECH_STACK.md)
 
 ## Goal
 
-Turn ChiGo into a multi-platform dining companion that supports mobile-native usage, realtime coordination, reservations, notifications, and expansion beyond CMU.
+Turn ChiGo into a multi-platform dining companion that supports mobile-native usage, push notifications, reservations, and expansion beyond CMU. Realtime group chat should already exist from Stage 4 and should be reused on mobile rather than redesigned here.
 
 ## Dependencies
 
@@ -24,6 +24,7 @@ Build a mobile app that supports:
 - Dining invites.
 - Open seats.
 - Meal plans.
+- Stage 4 group chat inside invites and meal plans.
 - Meal logging.
 - Menu upload from camera or photo library.
 
@@ -37,17 +38,20 @@ Users can receive notifications for:
 - A friend invited them to a meal.
 - A meal plan time was confirmed.
 - An open seat nearby was posted by a friend.
+- A new message arrived in an invite or meal plan chat.
 
 Users must be able to control notification preferences.
 
-### 3. Real-Time Chat
+### 3. Mobile Chat Experience
 
-Add lightweight chat for:
+Stage 5 should bring the Stage 4 chat experience to mobile:
 
-- Dining invites.
-- Meal plans.
+- Invite and meal plan chat should render in the Expo app.
+- Mobile should subscribe to the same Supabase Realtime message stream.
+- Push notifications should deep-link to the relevant invite or meal plan chat.
+- Mobile message creation and deletion should use the same validation and access rules as web.
 
-Chat should be scoped to participants only.
+Do not create a separate mobile-only chat schema or a parallel messaging system.
 
 ### 4. Reservation Integration
 
@@ -81,58 +85,41 @@ Matching must be opt-in.
 
 ### `user_devices`
 
-| Column | Type | Notes |
-| --- | --- | --- |
-| `id` | uuid | Primary key |
-| `user_id` | uuid | References `profiles.id` |
-| `platform` | text | `ios`, `android`, `web` |
-| `push_token` | text | Required for mobile push |
-| `created_at` | timestamptz | Default now |
+| Column       | Type        | Notes                    |
+| ------------ | ----------- | ------------------------ |
+| `id`         | uuid        | Primary key              |
+| `user_id`    | uuid        | References `profiles.id` |
+| `platform`   | text        | `ios`, `android`, `web`  |
+| `push_token` | text        | Required for mobile push |
+| `created_at` | timestamptz | Default now              |
 | `updated_at` | timestamptz | Updated on token refresh |
 
 ### `notification_preferences`
 
-| Column | Type | Notes |
-| --- | --- | --- |
-| `user_id` | uuid | Primary key, references `profiles.id` |
-| `invite_updates` | boolean | Default true |
-| `friend_invites` | boolean | Default true |
-| `open_seats` | boolean | Default true |
-| `meal_plan_updates` | boolean | Default true |
-| `nutrition_reminders` | boolean | Default false |
-| `updated_at` | timestamptz | Updated on edit |
+| Column                | Type        | Notes                                 |
+| --------------------- | ----------- | ------------------------------------- |
+| `user_id`             | uuid        | Primary key, references `profiles.id` |
+| `invite_updates`      | boolean     | Default true                          |
+| `friend_invites`      | boolean     | Default true                          |
+| `open_seats`          | boolean     | Default true                          |
+| `meal_plan_updates`   | boolean     | Default true                          |
+| `chat_messages`       | boolean     | Default true                          |
+| `nutrition_reminders` | boolean     | Default false                         |
+| `updated_at`          | timestamptz | Updated on edit                       |
 
-### `chat_threads`
-
-| Column | Type | Notes |
-| --- | --- | --- |
-| `id` | uuid | Primary key |
-| `thread_type` | text | `dining_invite` or `meal_plan` |
-| `dining_invite_id` | uuid | Optional |
-| `meal_plan_id` | uuid | Optional |
-| `created_at` | timestamptz | Default now |
-
-### `chat_messages`
-
-| Column | Type | Notes |
-| --- | --- | --- |
-| `id` | uuid | Primary key |
-| `thread_id` | uuid | References `chat_threads.id` |
-| `sender_id` | uuid | References `profiles.id` |
-| `body` | text | Required |
-| `created_at` | timestamptz | Default now |
+Chat tables are defined in Stage 4. Stage 5 may add notification delivery metadata if needed, but it should not redefine `chat_threads` or `chat_messages`.
 
 ### `campuses`
 
-| Column | Type | Notes |
-| --- | --- | --- |
-| `id` | uuid | Primary key |
-| `name` | text | Required |
-| `city` | text | Required |
-| `state` | text | Optional |
-| `country` | text | Required |
-| `latitude` | numeric | Required |
-| `longitude` | numeric | Required |
+| Column       | Type        | Notes       |
+| ------------ | ----------- | ----------- |
+| `id`         | uuid        | Primary key |
+| `name`       | text        | Required    |
+| `city`       | text        | Required    |
+| `state`      | text        | Optional    |
+| `country`    | text        | Required    |
+| `latitude`   | numeric     | Required    |
+| `longitude`  | numeric     | Required    |
 | `created_at` | timestamptz | Default now |
 
 ## Non-Goals
@@ -144,6 +131,7 @@ Avoid:
 - Building complex matching before enough social behavior exists.
 - Depending on direct reservation APIs without confirmed access.
 - Turning ChiGo into a generic social network unrelated to dining.
+- Rebuilding the Stage 4 chat system instead of reusing it across web and mobile.
 
 ## Acceptance Criteria
 
@@ -151,7 +139,8 @@ Stage 5 is complete when:
 
 - The Expo app supports the core Stage 1 invite flow.
 - Mobile users can receive and manage push notifications.
-- Invite and meal plan participants can chat in scoped threads.
+- Mobile users can use the existing Stage 4 scoped chat inside invites and meal plans.
+- Chat push notifications deep-link to the correct invite or meal plan.
 - Reservations can be shared via deep link or direct integration.
 - The app can separate data and feeds by campus.
 - Matching experiments are opt-in and measurable.
