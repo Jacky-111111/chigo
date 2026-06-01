@@ -2,14 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import {
-  BookOpenText,
-  CalendarPlus,
-  MapPin,
-  Settings,
-  Users,
-  Utensils,
-} from "lucide-react";
+import { BookOpenText, MapPin, Settings, Users, Utensils } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { Button } from "@/components/ui/button";
 
@@ -23,10 +16,10 @@ const items = [
   },
   { href: "/menus", label: "Menus", mobileLabel: "Menus", icon: BookOpenText },
   {
-    href: "/invites/new",
-    label: "New invite",
-    mobileLabel: "New",
-    icon: CalendarPlus,
+    href: "/meals",
+    label: "Meals",
+    mobileLabel: "Meals",
+    icon: Utensils,
   },
   {
     href: "/settings",

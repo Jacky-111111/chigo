@@ -1,8 +1,14 @@
+import Link from "next/link";
+import { Target } from "lucide-react";
 import { signOut } from "@/lib/actions/auth-actions";
 import { updateSettings } from "@/lib/actions/profile-actions";
 import { ProfileForm } from "@/components/settings/profile-form";
 import { Button } from "@/components/ui/button";
-import { getProfileBundle, requireCompletedProfile, requireUser } from "@/lib/services/profiles";
+import {
+  getProfileBundle,
+  requireCompletedProfile,
+  requireUser,
+} from "@/lib/services/profiles";
 
 export const metadata = {
   title: "Settings",
@@ -17,7 +23,9 @@ type SettingsPageProps = {
   }>;
 };
 
-export default async function SettingsPage({ searchParams }: SettingsPageProps) {
+export default async function SettingsPage({
+  searchParams,
+}: SettingsPageProps) {
   const params = await searchParams;
   const user = await requireUser();
   await requireCompletedProfile(user.id);
@@ -34,11 +42,19 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
             Keep your profile, dietary context, and social preferences current.
           </p>
         </div>
-        <form action={signOut}>
-          <Button type="submit" variant="secondary">
-            Sign out
+        <div className="flex flex-col gap-2 sm:flex-row">
+          <Button asChild variant="secondary">
+            <Link href="/settings/nutrition">
+              <Target size={17} />
+              Nutrition goals
+            </Link>
           </Button>
-        </form>
+          <form action={signOut}>
+            <Button type="submit" variant="secondary">
+              Sign out
+            </Button>
+          </form>
+        </div>
       </div>
 
       {params?.error ? (

@@ -19,7 +19,7 @@ export const acceptedMenuImageTypes = [
   "image/heif",
 ] as const;
 
-const acceptedMenuImageExtensions = [
+export const acceptedMenuImageExtensions = [
   "jpg",
   "jpeg",
   "png",

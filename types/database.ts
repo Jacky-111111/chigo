@@ -251,6 +251,100 @@ export type Database = {
         >;
         Relationships: [];
       };
+      nutrition_goals: {
+        Row: {
+          user_id: string;
+          daily_calorie_target: number | null;
+          daily_protein_target_g: number | null;
+          goal_type:
+            | "balanced"
+            | "high_protein"
+            | "weight_loss"
+            | "maintenance"
+            | "custom"
+            | null;
+          custom_goal_note: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          user_id: string;
+          daily_calorie_target?: number | null;
+          daily_protein_target_g?: number | null;
+          goal_type?:
+            | "balanced"
+            | "high_protein"
+            | "weight_loss"
+            | "maintenance"
+            | "custom"
+            | null;
+          custom_goal_note?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<
+          Database["public"]["Tables"]["nutrition_goals"]["Insert"]
+        >;
+        Relationships: [];
+      };
+      meal_logs: {
+        Row: {
+          id: string;
+          user_id: string;
+          restaurant_id: string | null;
+          menu_item_id: string | null;
+          meal_name: string;
+          photo_url: string | null;
+          eaten_at: string;
+          notes: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          restaurant_id?: string | null;
+          menu_item_id?: string | null;
+          meal_name: string;
+          photo_url?: string | null;
+          eaten_at: string;
+          notes?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["meal_logs"]["Insert"]>;
+        Relationships: [];
+      };
+      meal_nutrition_estimates: {
+        Row: {
+          meal_log_id: string;
+          calories: number | null;
+          protein_g: number | null;
+          fat_g: number | null;
+          carbs_g: number | null;
+          confidence: number | null;
+          ai_provider: string | null;
+          ai_model: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          meal_log_id: string;
+          calories?: number | null;
+          protein_g?: number | null;
+          fat_g?: number | null;
+          carbs_g?: number | null;
+          confidence?: number | null;
+          ai_provider?: string | null;
+          ai_model?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<
+          Database["public"]["Tables"]["meal_nutrition_estimates"]["Insert"]
+        >;
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: Record<string, never>;
@@ -272,3 +366,9 @@ export type MenuUploadStatus = MenuUpload["status"];
 export type MenuItem = Database["public"]["Tables"]["menu_items"]["Row"];
 export type MenuFeedback = Database["public"]["Tables"]["menu_feedback"]["Row"];
 export type MenuFeedbackType = MenuFeedback["feedback_type"];
+export type NutritionGoal =
+  Database["public"]["Tables"]["nutrition_goals"]["Row"];
+export type NutritionGoalType = NonNullable<NutritionGoal["goal_type"]>;
+export type MealLog = Database["public"]["Tables"]["meal_logs"]["Row"];
+export type MealNutritionEstimate =
+  Database["public"]["Tables"]["meal_nutrition_estimates"]["Row"];

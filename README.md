@@ -2,7 +2,7 @@
 
 ChiGo is an AI-powered dining companion for students, starting with Carnegie Mellon University in Pittsburgh.
 
-Stage 2 is the current implementation target: authentication, editable user settings, nearby restaurants, instant dining invites, and the first AI menu assistant.
+Stage 3 is the current implementation target: authentication, editable user settings, nearby restaurants, instant dining invites, the AI menu assistant, and a private nutrition meal journal.
 
 ## Local Setup
 
@@ -57,10 +57,13 @@ NEXT_PUBLIC_APP_URL=http://localhost:3000
 OPENAI_API_KEY=
 OPENAI_MENU_MODEL=gpt-4o-mini
 OPENAI_MENU_TIMEOUT_MS=60000
+OPENAI_NUTRITION_MODEL=gpt-4o-mini
+OPENAI_NUTRITION_TIMEOUT_MS=45000
 ```
 
 Stage 2 menu analysis needs `OPENAI_API_KEY`. `OPENAI_MENU_MODEL` can be changed without code edits if the AI provider model changes later.
 `OPENAI_MENU_TIMEOUT_MS` defaults to `60000` when omitted and is clamped between 10 and 120 seconds.
+Stage 3 nutrition estimation reuses `OPENAI_API_KEY`. `OPENAI_NUTRITION_MODEL` defaults to `OPENAI_MENU_MODEL` and then `gpt-4o-mini`; `OPENAI_NUTRITION_TIMEOUT_MS` defaults to `45000` and is also clamped between 10 and 120 seconds.
 
 ## Supabase Setup
 
@@ -71,6 +74,7 @@ db/migrations/0001_stage1_schema.sql
 db/migrations/0002_stage2_menu_assistant.sql
 db/migrations/0003_stage2_advisor_fixes.sql
 db/migrations/0004_stage2_menu_image_normalization.sql
+db/migrations/0005_stage3_nutrition_journal.sql
 ```
 
 Then seed restaurants if needed:
@@ -80,6 +84,7 @@ db/seed/stage1_restaurants.sql
 ```
 
 The Stage 2 migrations create the private `menu-images` storage bucket plus RLS policies for menu uploads, menu items, feedback, and owned image paths. HEIC/HEIF uploads are normalized to JPEG before storage and AI analysis.
+The Stage 3 migration creates the private `meal-images` storage bucket plus RLS policies for nutrition goals, meal logs, nutrition estimates, and owned meal photo paths.
 
 ## Useful Commands
 
@@ -122,6 +127,16 @@ After Supabase and OpenAI are configured:
 4. Open `/menus/[id]` to review translations, dish explanations, dietary warnings, and personalized recommendations.
 5. Submit feedback on incorrect AI output when needed.
 6. Open `/restaurants/[id]` to see restaurant info, active invites, and linked menu analyses.
+
+## Stage 3 Flow
+
+After Supabase and OpenAI are configured:
+
+1. Visit `/settings/nutrition` to set optional calorie and protein goals.
+2. Visit `/meals/new` to log a meal with a name, time, optional restaurant, optional menu item, notes, and optional photo.
+3. Open `/meals/[id]` to review or refresh the approximate nutrition estimate.
+4. Visit `/meals` to review daily journal totals.
+5. Visit `/nutrition` to review the weekly dashboard and goal context.
 
 ## Docs
 
