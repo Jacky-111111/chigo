@@ -1,6 +1,18 @@
 import Link from "next/link";
-import { CalendarDays, Plus, Settings, TrendingUp } from "lucide-react";
+import {
+  Activity,
+  CalendarDays,
+  Clock3,
+  PieChart,
+  Plus,
+  Settings,
+  TrendingUp,
+} from "lucide-react";
+import { MacroDistributionChart } from "@/components/meals/macro-distribution-chart";
+import { NutritionGoalProgress } from "@/components/meals/nutrition-goal-progress";
+import { NutritionLineChart } from "@/components/meals/nutrition-line-chart";
 import { NutritionMacroRow } from "@/components/meals/nutrition-macro-row";
+import { TimingDistribution } from "@/components/meals/timing-distribution";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -91,25 +103,80 @@ export default async function NutritionPage({
           </Button>
         </form>
 
-        <div className="grid gap-3 sm:grid-cols-3">
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <Metric label="Meals logged" value={summary.mealsLogged} />
+          <Metric label="Logged days" value={`${summary.loggedDays}/7`} />
           <Metric
             label="Avg daily calories"
             value={summary.averageDailyCalories}
           />
           <Metric
-            label="Protein goal"
-            value={
-              goals?.daily_protein_target_g
-                ? `${goals.daily_protein_target_g}g`
-                : "Not set"
-            }
+            label="Estimate coverage"
+            value={`${summary.estimateCoveragePercent}%`}
           />
         </div>
       </Card>
 
       <div className="grid gap-4 lg:grid-cols-[1fr_360px]">
         <section className="grid gap-4">
+          <Card className="grid gap-4 p-5">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <div className="flex items-center gap-2">
+                  <Activity
+                    className="text-[var(--food-tangerine)]"
+                    size={20}
+                  />
+                  <h2 className="text-xl font-black text-[var(--brand-eggplant)]">
+                    Calorie trend
+                  </h2>
+                </div>
+                <p className="mt-1 text-sm leading-6 text-[var(--text-muted)]">
+                  Daily estimated calories with your optional goal line.
+                </p>
+              </div>
+              {summary.highestCalorieDay ? (
+                <Badge variant="warm">
+                  Peak: {summary.highestCalorieDay.calories} cal
+                </Badge>
+              ) : null}
+            </div>
+            <NutritionLineChart
+              calorieTarget={goals?.daily_calorie_target}
+              days={summary.days}
+            />
+          </Card>
+
+          <div className="grid gap-4 lg:grid-cols-2">
+            <Card className="grid gap-4 p-5">
+              <NutritionGoalProgress
+                goals={goals}
+                totals={summary.averageDaily}
+                label="Average day vs goals"
+              />
+            </Card>
+
+            <Card className="grid gap-4 p-5">
+              <div className="flex items-center gap-2">
+                <PieChart className="text-[var(--food-saffron)]" size={20} />
+                <h2 className="text-xl font-black text-[var(--brand-eggplant)]">
+                  Macro split
+                </h2>
+              </div>
+              <MacroDistributionChart totals={summary.totals} />
+            </Card>
+          </div>
+
+          <Card className="grid gap-4 p-5">
+            <div className="flex items-center gap-2">
+              <Clock3 className="text-[var(--brand-indigo)]" size={20} />
+              <h2 className="text-xl font-black text-[var(--brand-eggplant)]">
+                Meal rhythm
+              </h2>
+            </div>
+            <TimingDistribution buckets={summary.timingBuckets} />
+          </Card>
+
           <Card className="grid gap-4 p-5">
             <div className="flex items-center gap-2">
               <TrendingUp className="text-[var(--food-tangerine)]" size={20} />
@@ -171,6 +238,17 @@ export default async function NutritionPage({
                 Link meals to restaurants to see patterns.
               </p>
             )}
+          </Card>
+
+          <Card className="grid gap-3 p-5">
+            <h2 className="text-xl font-black text-[var(--brand-eggplant)]">
+              Data quality
+            </h2>
+            <div className="grid gap-2 text-sm font-semibold text-[var(--text-muted)]">
+              <p>Estimated meals: {summary.mealsWithEstimates}</p>
+              <p>Missing estimates: {summary.mealsWithoutEstimates}</p>
+              <p>Coverage: {summary.estimateCoveragePercent}%</p>
+            </div>
           </Card>
 
           <Card className="grid gap-3 p-5">

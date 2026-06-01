@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { hasSupabaseEnv } from "@/lib/supabase/env";
 import {
   addDays,
+  appTimeZone,
   getLocalDayUtcRange,
   getWeekStartDateString,
 } from "@/lib/utils/date-range";
@@ -35,10 +36,32 @@ export type NutritionTotals = {
   carbsG: number;
 };
 
+export type MealTimingBucket = {
+  key: "breakfast" | "lunch" | "dinner" | "lateNight";
+  label: string;
+  count: number;
+};
+
+export type MacroCalorieDistribution = {
+  protein: number;
+  fat: number;
+  carbs: number;
+  total: number;
+};
+
 export type DailyMealJournal = {
   date: string;
   meals: MealLogWithDetails[];
   totals: NutritionTotals;
+  mealsWithEstimates: number;
+  mealsWithoutEstimates: number;
+  estimateCoveragePercent: number;
+  timingBuckets: MealTimingBucket[];
+  largestMeal: {
+    id: string;
+    name: string;
+    calories: number;
+  } | null;
 };
 
 export type WeeklyNutritionSummary = {
@@ -49,8 +72,20 @@ export type WeeklyNutritionSummary = {
     mealCount: number;
     totals: NutritionTotals;
   }>;
+  totals: NutritionTotals;
+  averageDaily: NutritionTotals;
   mealsLogged: number;
+  loggedDays: number;
   averageDailyCalories: number;
+  mealsWithEstimates: number;
+  mealsWithoutEstimates: number;
+  estimateCoveragePercent: number;
+  macroCalories: MacroCalorieDistribution;
+  timingBuckets: MealTimingBucket[];
+  highestCalorieDay: {
+    date: string;
+    calories: number;
+  } | null;
   topRestaurants: Array<{ name: string; count: number }>;
   insight: string;
 };
@@ -106,11 +141,15 @@ export async function listMealFormOptions(userId: string) {
 export async function getDailyMealJournal(userId: string, date: string) {
   const { startIso, endIso } = getLocalDayUtcRange(date);
   const meals = await listMealLogsInRange(userId, startIso, endIso);
+  const totals = calculateNutritionTotals(meals);
 
   return {
     date,
     meals,
-    totals: calculateNutritionTotals(meals),
+    totals,
+    ...getMealEstimateStats(meals),
+    timingBuckets: getMealTimingBuckets(meals),
+    largestMeal: getLargestMeal(meals),
   } satisfies DailyMealJournal;
 }
 
@@ -163,13 +202,44 @@ export async function getWeeklyNutritionSummary(
     };
   });
   const totalCalories = days.reduce((sum, day) => sum + day.totals.calories, 0);
+  const totals = days.reduce(
+    (sum, day) => ({
+      calories: sum.calories + day.totals.calories,
+      proteinG: sum.proteinG + day.totals.proteinG,
+      fatG: sum.fatG + day.totals.fatG,
+      carbsG: sum.carbsG + day.totals.carbsG,
+    }),
+    { calories: 0, proteinG: 0, fatG: 0, carbsG: 0 } satisfies NutritionTotals,
+  );
+  const estimateStats = getMealEstimateStats(meals);
+  const highestCalorieDay =
+    days
+      .filter((day) => day.mealCount > 0)
+      .sort((a, b) => b.totals.calories - a.totals.calories)[0] ?? null;
 
   return {
     weekStartDate: normalizedWeekStart,
     weekEndDate: addDays(normalizedWeekStart, 6),
     days,
+    totals,
+    averageDaily: {
+      calories: Math.round(totals.calories / 7),
+      proteinG: Math.round(totals.proteinG / 7),
+      fatG: Math.round(totals.fatG / 7),
+      carbsG: Math.round(totals.carbsG / 7),
+    },
     mealsLogged: meals.length,
+    loggedDays: days.filter((day) => day.mealCount > 0).length,
     averageDailyCalories: Math.round(totalCalories / 7),
+    ...estimateStats,
+    macroCalories: calculateMacroCalories(totals),
+    timingBuckets: getMealTimingBuckets(meals),
+    highestCalorieDay: highestCalorieDay
+      ? {
+          date: highestCalorieDay.date,
+          calories: highestCalorieDay.totals.calories,
+        }
+      : null,
     topRestaurants: getTopRestaurants(meals),
     insight: buildWeeklyInsight(days, meals),
   } satisfies WeeklyNutritionSummary;
@@ -399,6 +469,62 @@ export function calculateNutritionTotals(meals: MealLogWithDetails[]) {
   );
 }
 
+export function calculateMacroCalories(
+  totals: NutritionTotals,
+): MacroCalorieDistribution {
+  const protein = Math.round(totals.proteinG * 4);
+  const fat = Math.round(totals.fatG * 9);
+  const carbs = Math.round(totals.carbsG * 4);
+
+  return {
+    protein,
+    fat,
+    carbs,
+    total: protein + fat + carbs,
+  };
+}
+
+export function getMealEstimateStats(meals: MealLogWithDetails[]) {
+  const mealsWithEstimates = meals.filter((meal) => meal.nutrition).length;
+  const mealsWithoutEstimates = meals.length - mealsWithEstimates;
+
+  return {
+    mealsWithEstimates,
+    mealsWithoutEstimates,
+    estimateCoveragePercent:
+      meals.length === 0
+        ? 0
+        : Math.round((mealsWithEstimates / meals.length) * 100),
+  };
+}
+
+export function getMealTimingBuckets(
+  meals: Array<Pick<MealLogWithDetails, "eaten_at">>,
+) {
+  const buckets: MealTimingBucket[] = [
+    { key: "breakfast", label: "Breakfast", count: 0 },
+    { key: "lunch", label: "Lunch", count: 0 },
+    { key: "dinner", label: "Dinner", count: 0 },
+    { key: "lateNight", label: "Late night", count: 0 },
+  ];
+
+  for (const meal of meals) {
+    const hour = getMealHour(meal.eaten_at);
+
+    if (hour >= 5 && hour < 11) {
+      buckets[0].count += 1;
+    } else if (hour >= 11 && hour < 16) {
+      buckets[1].count += 1;
+    } else if (hour >= 16 && hour < 21) {
+      buckets[2].count += 1;
+    } else {
+      buckets[3].count += 1;
+    }
+  }
+
+  return buckets;
+}
+
 function getTopRestaurants(meals: MealLogWithDetails[]) {
   const counts = new Map<string, number>();
 
@@ -417,6 +543,34 @@ function getTopRestaurants(meals: MealLogWithDetails[]) {
     .sort((a, b) => b[1] - a[1])
     .slice(0, 3)
     .map(([name, count]) => ({ name, count }));
+}
+
+function getLargestMeal(meals: MealLogWithDetails[]) {
+  const meal = meals
+    .filter((item) => item.nutrition?.calories)
+    .sort(
+      (a, b) => (b.nutrition?.calories ?? 0) - (a.nutrition?.calories ?? 0),
+    )[0];
+
+  if (!meal?.nutrition?.calories) {
+    return null;
+  }
+
+  return {
+    id: meal.id,
+    name: meal.meal_name,
+    calories: meal.nutrition.calories,
+  };
+}
+
+function getMealHour(value: string) {
+  return Number(
+    new Intl.DateTimeFormat("en-US", {
+      hour: "2-digit",
+      hourCycle: "h23",
+      timeZone: appTimeZone,
+    }).format(new Date(value)),
+  );
 }
 
 function buildWeeklyInsight(

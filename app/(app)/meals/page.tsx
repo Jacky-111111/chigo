@@ -1,14 +1,27 @@
 import Link from "next/link";
-import { CalendarDays, Plus, Target } from "lucide-react";
+import { Activity, CalendarDays, PieChart, Plus, Target } from "lucide-react";
 import { MealCard } from "@/components/meals/meal-card";
+import { MacroDistributionChart } from "@/components/meals/macro-distribution-chart";
+import { NutritionGoalProgress } from "@/components/meals/nutrition-goal-progress";
+import { NutritionLineChart } from "@/components/meals/nutrition-line-chart";
 import { NutritionMacroRow } from "@/components/meals/nutrition-macro-row";
+import { TimingDistribution } from "@/components/meals/timing-distribution";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Input } from "@/components/ui/input";
-import { getDailyMealJournal } from "@/lib/services/meals";
+import {
+  getDailyMealJournal,
+  getNutritionGoals,
+  getWeeklyNutritionSummary,
+} from "@/lib/services/meals";
 import { requireCompletedProfile, requireUser } from "@/lib/services/profiles";
-import { normalizeDateString } from "@/lib/utils/date-range";
+import {
+  formatShortDate,
+  getWeekStartDateString,
+  normalizeDateString,
+} from "@/lib/utils/date-range";
 
 export const metadata = {
   title: "Meals",
@@ -29,7 +42,12 @@ export default async function MealsPage({ searchParams }: MealsPageProps) {
   const user = await requireUser();
   await requireCompletedProfile(user.id);
   const date = normalizeDateString(params?.date);
-  const journal = await getDailyMealJournal(user.id, date);
+  const weekStart = getWeekStartDateString(date);
+  const [journal, weekSummary, goals] = await Promise.all([
+    getDailyMealJournal(user.id, date),
+    getWeeklyNutritionSummary(user.id, weekStart),
+    getNutritionGoals(user.id),
+  ]);
 
   return (
     <section className="page-shell grid gap-6">
@@ -89,11 +107,80 @@ export default async function MealsPage({ searchParams }: MealsPageProps) {
         </form>
 
         <NutritionMacroRow totals={journal.totals} />
+        <NutritionGoalProgress
+          goals={goals}
+          totals={journal.totals}
+          label="Selected day vs goals"
+        />
         <p className="text-xs font-semibold text-[var(--text-muted)]">
           Nutrition totals are estimates and may be incomplete when meals have
           not been analyzed.
         </p>
       </Card>
+
+      <div className="grid gap-4 md:grid-cols-4">
+        <JournalMetric label="Meals" value={journal.meals.length} />
+        <JournalMetric
+          label="Estimate coverage"
+          value={`${journal.estimateCoveragePercent}%`}
+        />
+        <JournalMetric
+          label="Missing estimates"
+          value={journal.mealsWithoutEstimates}
+        />
+        <JournalMetric
+          label="Largest meal"
+          value={
+            journal.largestMeal
+              ? `${journal.largestMeal.calories} cal`
+              : "Not yet"
+          }
+        />
+      </div>
+
+      <div className="grid gap-4 lg:grid-cols-[1.35fr_1fr]">
+        <Card className="grid gap-4 p-5">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <div className="flex items-center gap-2">
+                <Activity className="text-[var(--food-tangerine)]" size={20} />
+                <h2 className="text-xl font-black text-[var(--brand-eggplant)]">
+                  Week calories
+                </h2>
+              </div>
+              <p className="mt-1 text-sm leading-6 text-[var(--text-muted)]">
+                {formatShortDate(weekSummary.weekStartDate)} -{" "}
+                {formatShortDate(weekSummary.weekEndDate)}
+              </p>
+            </div>
+            <Badge variant="indigo">{weekSummary.mealsLogged} meals</Badge>
+          </div>
+          <NutritionLineChart
+            calorieTarget={goals?.daily_calorie_target}
+            days={weekSummary.days}
+            selectedDate={date}
+          />
+        </Card>
+
+        <div className="grid gap-4">
+          <Card className="grid gap-4 p-5">
+            <div className="flex items-center gap-2">
+              <PieChart className="text-[var(--food-saffron)]" size={20} />
+              <h2 className="text-xl font-black text-[var(--brand-eggplant)]">
+                Macro calories
+              </h2>
+            </div>
+            <MacroDistributionChart totals={journal.totals} />
+          </Card>
+
+          <Card className="grid gap-4 p-5">
+            <h2 className="text-xl font-black text-[var(--brand-eggplant)]">
+              Meal timing
+            </h2>
+            <TimingDistribution buckets={journal.timingBuckets} />
+          </Card>
+        </div>
+      </div>
 
       {journal.meals.length > 0 ? (
         <div className="grid gap-4">
@@ -116,5 +203,24 @@ export default async function MealsPage({ searchParams }: MealsPageProps) {
         />
       )}
     </section>
+  );
+}
+
+function JournalMetric({
+  label,
+  value,
+}: {
+  label: string;
+  value: string | number;
+}) {
+  return (
+    <Card className="p-4">
+      <p className="text-xs font-bold uppercase text-[var(--text-muted)]">
+        {label}
+      </p>
+      <p className="mt-1 text-2xl font-black text-[var(--brand-eggplant)]">
+        {value}
+      </p>
+    </Card>
   );
 }
