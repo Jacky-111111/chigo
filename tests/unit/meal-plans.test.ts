@@ -44,6 +44,7 @@ function confirmedPlan(): MealPlanWithDetails {
       instagram_handle: null,
       avatar_url: null,
       profile_completed_at: "2026-06-01T16:00:00.000Z",
+      username_changed_at: null,
       created_at: "2026-06-01T16:00:00.000Z",
       updated_at: "2026-06-01T16:00:00.000Z",
     },
