@@ -76,6 +76,7 @@ db/migrations/0003_stage2_advisor_fixes.sql
 db/migrations/0004_stage2_menu_image_normalization.sql
 db/migrations/0005_stage3_nutrition_journal.sql
 db/migrations/0006_stage4_social_planning_chat.sql
+db/migrations/0007_stage4_invite_rls_recursion_fix.sql
 ```
 
 Then seed restaurants if needed:
@@ -86,7 +87,7 @@ db/seed/stage1_restaurants.sql
 
 The Stage 2 migrations create the private `menu-images` storage bucket plus RLS policies for menu uploads, menu items, feedback, and owned image paths. HEIC/HEIF uploads are normalized to JPEG before storage and AI analysis.
 The Stage 3 migration creates the private `meal-images` storage bucket plus RLS policies for nutrition goals, meal logs, nutrition estimates, and owned meal photo paths.
-The Stage 4 migration creates friendships, open seat posts, meal plans, persistent group chat tables, temporary invite or plan chat tables, RLS policies, and Supabase Realtime publication support for chat messages.
+The Stage 4 migrations create friendships, open seat posts, meal plans, persistent group chat tables, temporary invite or plan chat tables, RLS policies, Supabase Realtime publication support for chat messages, and the invite RLS recursion fix.
 
 ## Useful Commands
 
