@@ -6,7 +6,7 @@ Shared tech stack: [../TECH_STACK.md](../TECH_STACK.md)
 
 ## Goal
 
-Turn ChiGo into a multi-platform dining companion that supports mobile-native usage, push notifications, reservations, and expansion beyond CMU. Realtime group chat should already exist from Stage 4 and should be reused on mobile rather than redesigned here.
+Turn ChiGo into a multi-platform dining companion that supports mobile-native usage, push notifications, reservations, and expansion beyond CMU. Persistent friend group chat and temporary dining coordination chat should already exist from Stage 4 and should be reused on mobile rather than redesigned here.
 
 ## Dependencies
 
@@ -24,7 +24,8 @@ Build a mobile app that supports:
 - Dining invites.
 - Open seats.
 - Meal plans.
-- Stage 4 group chat inside invites and meal plans.
+- Stage 4 persistent friend group chat.
+- Stage 4 temporary chat inside invites and meal plans.
 - Meal logging.
 - Menu upload from camera or photo library.
 
@@ -38,17 +39,18 @@ Users can receive notifications for:
 - A friend invited them to a meal.
 - A meal plan time was confirmed.
 - An open seat nearby was posted by a friend.
-- A new message arrived in an invite or meal plan chat.
+- A new message arrived in a persistent friend group, invite, or meal plan chat.
 
 Users must be able to control notification preferences.
 
 ### 3. Mobile Chat Experience
 
-Stage 5 should bring the Stage 4 chat experience to mobile:
+Stage 5 should bring the full Stage 4 chat experience to mobile:
 
+- Persistent friend group chat should render in the Expo app.
 - Invite and meal plan chat should render in the Expo app.
 - Mobile should subscribe to the same Supabase Realtime message stream.
-- Push notifications should deep-link to the relevant invite or meal plan chat.
+- Push notifications should deep-link to the relevant friend group, invite, or meal plan chat.
 - Mobile message creation and deletion should use the same validation and access rules as web.
 
 Do not create a separate mobile-only chat schema or a parallel messaging system.
@@ -139,8 +141,8 @@ Stage 5 is complete when:
 
 - The Expo app supports the core Stage 1 invite flow.
 - Mobile users can receive and manage push notifications.
-- Mobile users can use the existing Stage 4 scoped chat inside invites and meal plans.
-- Chat push notifications deep-link to the correct invite or meal plan.
+- Mobile users can use the existing Stage 4 persistent friend group chat and scoped invite or meal plan chat.
+- Chat push notifications deep-link to the correct friend group, invite, or meal plan.
 - Reservations can be shared via deep link or direct integration.
 - The app can separate data and feeds by campus.
 - Matching experiments are opt-in and measurable.

@@ -1,12 +1,12 @@
 # ChiGo Stage 4 Spec
 
-Stage: Social Dining, Planning, and Realtime Group Chat
+Stage: Social Dining, Planning, and Persistent Group Chat
 
 Shared tech stack: [../TECH_STACK.md](../TECH_STACK.md)
 
 ## Goal
 
-Expand ChiGo from public campus invites into a fuller dining social network. Users should be able to add friends, create group meal plans, collect availability, coordinate in realtime group chat, and use CMU-specific open seat behavior.
+Expand ChiGo from public campus invites into a fuller dining social network. Users should be able to add friends, create persistent friend group chats, create group meal plans, collect availability, coordinate in realtime chat, and use CMU-specific open seat behavior.
 
 ## Dependencies
 
@@ -73,44 +73,68 @@ Full two-way calendar sync is not required.
 
 ### 6. Realtime Group Chat
 
-Users can chat inside dining coordination contexts:
+Stage 4 should support two chat types:
 
-- Dining invite group chat.
-- Meal plan group chat.
+- Persistent friend group chats.
+- Temporary dining coordination chats.
 
-Chat should be lightweight and focused on coordination, not a general-purpose DM system.
+Persistent friend group chats are the long-lived social layer of ChiGo. They should feel closer to an Instagram or WeChat group chat than a one-off comment thread. Users should have a fixed place to keep talking with the same friends between meals, which helps ChiGo become a friend and food social graph rather than only an invite tool.
 
-Required chat behavior:
+Persistent friend group chat behavior:
+
+- Users can create a named or unnamed group chat from accepted friends.
+- A group chat must include the creator and at least one accepted friend.
+- The creator starts as the group owner.
+- Owners can rename the group.
+- Owners can add accepted friends to the group.
+- Owners can remove members from the group.
+- Members can leave a group.
+- Members can see the group in a dedicated chat list.
+- Members can open the group and send text messages.
+- Group chats persist after a meal invite or meal plan ends.
+
+Temporary dining coordination chat behavior:
 
 - A chat thread is created automatically for every dining invite and every meal plan.
 - Only the host/creator and active participants can view or send messages.
+- Temporary chat should be embedded on the invite or meal plan detail page.
+- Temporary chat can remain readable after completion for eligible participants, but should not be promoted as the main long-term social space.
+
+Shared chat behavior:
+
 - Messages appear in realtime for users viewing the same thread.
 - Messages show sender display name, timestamp, and body.
-- Empty chat states encourage users to ask practical coordination questions.
+- Empty chat states should be contextual:
+  - Friend group chats should encourage starting a casual food conversation.
+  - Invite and meal plan chats should encourage practical coordination questions.
 - Users can send text messages up to a reasonable limit, such as 1,000 characters.
 - Users can delete their own messages, preferably using a soft-delete pattern.
-- Leaving, declining, or being removed from a plan should remove future chat access unless the product explicitly keeps read-only history.
+- Leaving or being removed from a persistent friend group removes future access to that group.
+- Leaving, declining, or being removed from a plan should remove future temporary chat access unless the product explicitly keeps read-only history.
 
 Implementation expectations:
 
 - Use Supabase Realtime Postgres Changes for message insert events.
 - Use server actions for message creation and deletion so auth and validation stay centralized.
-- Use RLS policies to enforce participant-only read/write access.
+- Use RLS policies to enforce active-member-only read/write access.
 - Keep the first version text-only. No images, voice, reactions, typing indicators, read receipts, or end-to-end encryption in Stage 4.
 
 ## Pages and Routes
 
-| Route               | Purpose                                                          |
-| ------------------- | ---------------------------------------------------------------- |
-| `/friends`          | Friend list and requests                                         |
-| `/users/[username]` | Public user profile                                              |
-| `/open-seats`       | Active open seat posts                                           |
-| `/plans`            | Group meal plans                                                 |
-| `/plans/new`        | Create scheduled meal plan                                       |
-| `/invites/[id]`     | Invite detail with embedded group chat                           |
-| `/plans/[id]`       | Plan detail, availability, confirmation, and embedded group chat |
+| Route               | Purpose                                                    |
+| ------------------- | ---------------------------------------------------------- |
+| `/friends`          | Friend list and requests                                   |
+| `/users/[username]` | Public user profile                                        |
+| `/open-seats`       | Active open seat posts                                     |
+| `/plans`            | Group meal plans                                           |
+| `/plans/new`        | Create scheduled meal plan                                 |
+| `/chats`            | Persistent friend group chat list                          |
+| `/chats/new`        | Create a persistent friend group chat                      |
+| `/chats/[id]`       | Persistent friend group chat detail                        |
+| `/invites/[id]`     | Invite detail with embedded temporary group chat           |
+| `/plans/[id]`       | Plan detail, availability, confirmation, and embedded chat |
 
-Chat does not need a standalone inbox in Stage 4. It should live inside the invite or meal plan detail page where coordination is happening.
+Persistent friend group chat needs a standalone chat list in Stage 4. Temporary invite and meal plan chats should stay embedded inside the relevant detail page where coordination is happening.
 
 ## Data Model Additions
 
@@ -176,20 +200,41 @@ Chat does not need a standalone inbox in Stage 4. It should live inside the invi
 
 ### `chat_threads`
 
-| Column             | Type        | Notes                                   |
-| ------------------ | ----------- | --------------------------------------- |
-| `id`               | uuid        | Primary key                             |
-| `thread_type`      | text        | `dining_invite` or `meal_plan`          |
-| `dining_invite_id` | uuid        | Optional references `dining_invites.id` |
-| `meal_plan_id`     | uuid        | Optional references `meal_plans.id`     |
-| `created_at`       | timestamptz | Default now                             |
-| `updated_at`       | timestamptz | Updated on message activity             |
+| Column             | Type        | Notes                                           |
+| ------------------ | ----------- | ----------------------------------------------- |
+| `id`               | uuid        | Primary key                                     |
+| `thread_type`      | text        | `friend_group`, `dining_invite`, or `meal_plan` |
+| `title`            | text        | Optional, display can fall back to member names |
+| `created_by`       | uuid        | References `profiles.id`                        |
+| `dining_invite_id` | uuid        | Optional references `dining_invites.id`         |
+| `meal_plan_id`     | uuid        | Optional references `meal_plans.id`             |
+| `created_at`       | timestamptz | Default now                                     |
+| `updated_at`       | timestamptz | Updated on message activity                     |
 
 Constraints:
 
-- Exactly one of `dining_invite_id` or `meal_plan_id` must be present.
-- `thread_type` must match the populated parent reference.
+- `friend_group` threads must not have `dining_invite_id` or `meal_plan_id`.
+- `dining_invite` threads must have `dining_invite_id` and no `meal_plan_id`.
+- `meal_plan` threads must have `meal_plan_id` and no `dining_invite_id`.
 - There should be at most one thread per dining invite and at most one thread per meal plan.
+
+### `chat_thread_members`
+
+| Column       | Type        | Notes                          |
+| ------------ | ----------- | ------------------------------ |
+| `thread_id`  | uuid        | References `chat_threads.id`   |
+| `user_id`    | uuid        | References `profiles.id`       |
+| `role`       | text        | `owner` or `member`            |
+| `status`     | text        | `active`, `left`, or `removed` |
+| `created_at` | timestamptz | Default now                    |
+| `updated_at` | timestamptz | Updated on membership changes  |
+
+Notes:
+
+- Use a composite unique constraint on `thread_id` and `user_id`.
+- Persistent friend group membership is managed directly through this table.
+- Temporary dining invite and meal plan chat membership should be synchronized from the invite or plan participant list.
+- Users should only be addable to a persistent friend group if they have an accepted friendship with the inviter.
 
 ### `chat_messages`
 
@@ -207,11 +252,13 @@ Constraints:
 
 Chat privacy is part of the Stage 4 acceptance bar:
 
-- A user can select a chat thread only if they can access the parent dining invite or meal plan.
-- A user can select messages only for threads they can access.
-- A user can insert a message only as themselves and only into a thread they can access.
+- A user can select a chat thread only if they are an active member of that thread.
+- A user can select chat membership rows only for threads where they are an active member.
+- A user can select messages only for threads where they are an active member.
+- A user can insert a message only as themselves and only into a thread where they are an active member.
 - A user can soft-delete only their own messages.
-- Non-participants must not be able to infer private plan chat content.
+- Only owners can add members, remove members, or rename a persistent friend group.
+- Non-members must not be able to infer private group, invite, or plan chat content.
 
 ## Server Actions or API Operations
 
@@ -224,8 +271,14 @@ Chat privacy is part of the Stage 4 acceptance bar:
 - `submitMealPlanAvailability(input)`
 - `confirmMealPlan(input)`
 - `generateCalendarLink(mealPlanId)`
+- `createFriendGroupChat(input)`
+- `renameFriendGroupChat(threadId, title)`
+- `addFriendGroupChatMembers(threadId, userIds)`
+- `removeFriendGroupChatMember(threadId, userId)`
+- `leaveFriendGroupChat(threadId)`
 - `ensureDiningInviteChatThread(inviteId)`
 - `ensureMealPlanChatThread(planId)`
+- `listChatThreads()`
 - `listChatMessages(threadId)`
 - `sendChatMessage(threadId, body)`
 - `deleteOwnChatMessage(messageId)`
@@ -240,7 +293,7 @@ The subscription should listen for inserts and updates on `chat_messages` scoped
 
 Do not build these in Stage 4:
 
-- Standalone direct messages unrelated to a dining invite or meal plan.
+- A separate one-to-one direct message product or separate DM data model.
 - Rich chat attachments, reactions, read receipts, typing indicators, voice messages, or moderation tooling beyond basic soft delete.
 - Algorithmic friend matching.
 - Native push notifications.
@@ -252,14 +305,17 @@ Do not build these in Stage 4:
 Stage 4 is complete when:
 
 - Users can add and remove friends.
+- Users can create, rename, view, and leave persistent friend group chats.
+- Persistent friend group owners can add accepted friends and remove members.
 - Users can create friends-only dining invites.
 - Users can post and close CMU open seat posts.
 - Users can create a meal plan and invite friends.
 - Participants can submit availability.
 - The app suggests the best overlapping meal time.
 - A confirmed plan can produce a calendar link.
+- Persistent friend group members can send and receive realtime text messages.
 - Dining invite participants can send and receive realtime group chat messages.
 - Meal plan participants can send and receive realtime group chat messages.
-- Chat access is limited to eligible participants by RLS, not only by UI checks.
+- Chat access is limited to active members by RLS, not only by UI checks.
 - Users can soft-delete their own chat messages.
-- Privacy rules prevent non-participants from viewing private plans.
+- Privacy rules prevent non-members from viewing private friend groups, invite chats, and plan chats.
