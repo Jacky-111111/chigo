@@ -19,6 +19,7 @@ export type Database = {
           instagram_handle: string | null;
           avatar_url: string | null;
           profile_completed_at: string | null;
+          username_changed_at: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -31,6 +32,7 @@ export type Database = {
           instagram_handle?: string | null;
           avatar_url?: string | null;
           profile_completed_at?: string | null;
+          username_changed_at?: string | null;
           created_at?: string;
           updated_at?: string;
         };

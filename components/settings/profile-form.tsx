@@ -1,4 +1,8 @@
 import type { DiningPreference, Profile } from "@/types/database";
+import {
+  formatUsernameChangeDate,
+  getNextUsernameChangeDate,
+} from "@/lib/utils/username";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Field } from "@/components/ui/field";
@@ -24,24 +28,39 @@ export function ProfileForm({
   preferences?: DiningPreference | null;
   submitLabel: string;
 }) {
-  const selectedMealTimes = new Set(preferences?.typical_meal_times ?? ["lunch", "dinner"]);
+  const selectedMealTimes = new Set(
+    preferences?.typical_meal_times ?? ["lunch", "dinner"],
+  );
+  const usernameHint = getUsernameHint(profile);
 
   return (
     <form action={action} className="grid gap-5">
       <Card className="grid gap-5 p-5">
         <div>
-          <h2 className="text-xl font-black text-[var(--brand-eggplant)]">Profile</h2>
+          <h2 className="text-xl font-black text-[var(--brand-eggplant)]">
+            Profile
+          </h2>
           <p className="mt-1 text-sm leading-6 text-[var(--text-muted)]">
             This is what other diners see when you host or join a meal.
           </p>
         </div>
 
         <div className="grid gap-4 md:grid-cols-2">
-          <Field label="Username" hint="Lowercase letters, numbers, and underscores.">
-            <Input name="username" defaultValue={profile?.username ?? ""} placeholder="tartan_eater" required />
+          <Field label="Username" hint={usernameHint}>
+            <Input
+              name="username"
+              defaultValue={profile?.username ?? ""}
+              placeholder="tartan_eater"
+              required
+            />
           </Field>
           <Field label="Display name">
-            <Input name="displayName" defaultValue={profile?.display_name ?? ""} placeholder="Tartan Eater" required />
+            <Input
+              name="displayName"
+              defaultValue={profile?.display_name ?? ""}
+              placeholder="Tartan Eater"
+              required
+            />
           </Field>
         </div>
 
@@ -73,21 +92,31 @@ export function ProfileForm({
 
       <Card className="grid gap-5 p-5">
         <div>
-          <h2 className="text-xl font-black text-[var(--brand-eggplant)]">Dining settings</h2>
+          <h2 className="text-xl font-black text-[var(--brand-eggplant)]">
+            Dining settings
+          </h2>
           <p className="mt-1 text-sm leading-6 text-[var(--text-muted)]">
             These help ChiGo recommend safer, better meal plans later.
           </p>
         </div>
 
         <div className="grid gap-4 md:grid-cols-2">
-          <Field label="Dietary restrictions" hint="Comma separated. Example: vegetarian, halal">
+          <Field
+            label="Dietary restrictions"
+            hint="Comma separated. Example: vegetarian, halal"
+          >
             <Input
               name="dietaryRestrictions"
-              defaultValue={(preferences?.dietary_restrictions ?? []).join(", ")}
+              defaultValue={(preferences?.dietary_restrictions ?? []).join(
+                ", ",
+              )}
               placeholder="vegetarian, halal"
             />
           </Field>
-          <Field label="Allergies" hint="Comma separated. Example: peanuts, shellfish">
+          <Field
+            label="Allergies"
+            hint="Comma separated. Example: peanuts, shellfish"
+          >
             <Input
               name="allergies"
               defaultValue={(preferences?.allergies ?? []).join(", ")}
@@ -96,7 +125,10 @@ export function ProfileForm({
           </Field>
         </div>
 
-        <Field label="Favorite cuisines" hint="Comma separated. Example: Sichuan, Thai, Korean">
+        <Field
+          label="Favorite cuisines"
+          hint="Comma separated. Example: Sichuan, Thai, Korean"
+        >
           <Input
             name="favoriteCuisines"
             defaultValue={(preferences?.favorite_cuisines ?? []).join(", ")}
@@ -105,7 +137,9 @@ export function ProfileForm({
         </Field>
 
         <fieldset className="grid gap-3">
-          <legend className="text-sm font-semibold text-[var(--brand-eggplant)]">Typical meal times</legend>
+          <legend className="text-sm font-semibold text-[var(--brand-eggplant)]">
+            Typical meal times
+          </legend>
           <div className="grid gap-2 sm:grid-cols-4">
             {mealTimes.map((mealTime) => (
               <label
@@ -126,7 +160,10 @@ export function ProfileForm({
         </fieldset>
 
         <Field label="Social preference">
-          <Select name="socialPreference" defaultValue={preferences?.social_preference ?? "open_to_invites"}>
+          <Select
+            name="socialPreference"
+            defaultValue={preferences?.social_preference ?? "open_to_invites"}
+          >
             <option value="open_to_invites">Open to dining invites</option>
             <option value="friends_only">Friends only</option>
             <option value="private">Private</option>
@@ -139,4 +176,17 @@ export function ProfileForm({
       </div>
     </form>
   );
+}
+
+function getUsernameHint(profile?: Profile | null) {
+  const baseHint =
+    "Lowercase letters, numbers, and underscores. Changing it invalidates old profile links.";
+
+  if (!profile?.username_changed_at) {
+    return `${baseHint} After your first change, username changes are limited to once every 30 days.`;
+  }
+
+  return `${baseHint} Username changes are limited to once every 30 days. Next available change: ${formatUsernameChangeDate(
+    getNextUsernameChangeDate(profile.username_changed_at),
+  )}.`;
 }
