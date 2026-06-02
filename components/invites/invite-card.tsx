@@ -13,9 +13,16 @@ export function InviteCard({
   invite: InviteWithDetails;
   currentUserId: string;
 }) {
-  const joinedParticipants = invite.participants.filter((participant) => participant.status === "joined");
-  const openSpots = Math.max(invite.max_participants - joinedParticipants.length, 0);
-  const joined = joinedParticipants.some((participant) => participant.user_id === currentUserId);
+  const joinedParticipants = invite.participants.filter(
+    (participant) => participant.status === "joined",
+  );
+  const openSpots = Math.max(
+    invite.max_participants - joinedParticipants.length,
+    0,
+  );
+  const joined = joinedParticipants.some(
+    (participant) => participant.user_id === currentUserId,
+  );
   const hosting = invite.host_id === currentUserId;
   const startingSoon = isStartingSoon(invite.start_at);
 
@@ -24,9 +31,24 @@ export function InviteCard({
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div className="grid gap-2">
           <div className="flex flex-wrap items-center gap-2">
-            <h2 className="text-xl font-black text-[var(--brand-eggplant)]">{invite.restaurant.name}</h2>
-            {startingSoon ? <Badge variant="urgent">Starting soon</Badge> : null}
-            {hosting ? <Badge variant="indigo">Hosting</Badge> : joined ? <Badge variant="indigo">Joined</Badge> : null}
+            <h2 className="text-xl font-black text-[var(--brand-eggplant)]">
+              {invite.restaurant.name}
+            </h2>
+            <Badge
+              variant={
+                invite.visibility === "campus_public" ? "warm" : "indigo"
+              }
+            >
+              {formatVisibility(invite.visibility)}
+            </Badge>
+            {startingSoon ? (
+              <Badge variant="urgent">Starting soon</Badge>
+            ) : null}
+            {hosting ? (
+              <Badge variant="indigo">Hosting</Badge>
+            ) : joined ? (
+              <Badge variant="indigo">Joined</Badge>
+            ) : null}
           </div>
           <p className="flex items-center gap-2 text-sm text-[var(--text-muted)]">
             <MapPin size={15} />
@@ -71,9 +93,23 @@ export function InviteCard({
           ))}
         </div>
         <Button asChild variant={joined || hosting ? "secondary" : "primary"}>
-          <Link href={`/invites/${invite.id}`}>{joined || hosting ? "View details" : "Join or view"}</Link>
+          <Link href={`/invites/${invite.id}`}>
+            {joined || hosting ? "View details" : "Join or view"}
+          </Link>
         </Button>
       </div>
     </Card>
   );
+}
+
+function formatVisibility(visibility: InviteWithDetails["visibility"]) {
+  if (visibility === "friends_only") {
+    return "Friends";
+  }
+
+  if (visibility === "private_link") {
+    return "Private";
+  }
+
+  return "Campus";
 }

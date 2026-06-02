@@ -2,9 +2,11 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft, Clock, MapPin, Navigation, Users } from "lucide-react";
 import { cancelDiningInvite, joinDiningInvite, leaveDiningInvite } from "@/lib/actions/invite-actions";
+import { ChatPanel } from "@/components/chats/chat-panel";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { getDiningInviteChatThreadDetail } from "@/lib/services/chats";
 import { getInviteDetail } from "@/lib/services/invites";
 import { requireCompletedProfile, requireUser } from "@/lib/services/profiles";
 import { formatInviteTime, isExpired, isStartingSoon } from "@/lib/utils/time";
@@ -40,6 +42,8 @@ export default async function InviteDetailPage({ params, searchParams }: InviteD
   const openSpots = Math.max(invite.max_participants - joinedParticipants.length, 0);
   const joinDisabled = invite.status !== "open" || openSpots <= 0 || isExpired(invite.expires_at);
   const startingSoon = isStartingSoon(invite.start_at);
+  const chatThread =
+    isHost || isParticipant ? await getDiningInviteChatThreadDetail(invite.id) : null;
 
   return (
     <section className="page-shell grid gap-6">
@@ -55,6 +59,9 @@ export default async function InviteDetailPage({ params, searchParams }: InviteD
           <div className="max-w-2xl">
             <div className="mb-3 flex flex-wrap gap-2">
               <Badge variant={invite.status === "open" ? "warm" : "urgent"}>{invite.status}</Badge>
+              <Badge variant={invite.visibility === "campus_public" ? "warm" : "indigo"}>
+                {formatVisibility(invite.visibility)}
+              </Badge>
               {startingSoon ? <Badge variant="urgent">Starting soon</Badge> : null}
               {isHost ? <Badge variant="indigo">You are hosting</Badge> : null}
               {isParticipant ? <Badge variant="indigo">You joined</Badge> : null}
@@ -193,6 +200,28 @@ export default async function InviteDetailPage({ params, searchParams }: InviteD
           </div>
         </Card>
       </div>
+
+      {chatThread ? (
+        <ChatPanel
+          threadId={chatThread.id}
+          currentUserId={user.id}
+          initialMessages={chatThread.messages}
+          title="Invite chat"
+          emptyHint="Ask where to meet, who is already there, or whether anyone wants to share dishes."
+        />
+      ) : null}
     </section>
   );
+}
+
+function formatVisibility(visibility: import("@/types/database").DiningInvite["visibility"]) {
+  if (visibility === "friends_only") {
+    return "Friends only";
+  }
+
+  if (visibility === "private_link") {
+    return "Private link";
+  }
+
+  return "Campus public";
 }

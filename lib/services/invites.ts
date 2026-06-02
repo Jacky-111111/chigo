@@ -29,7 +29,6 @@ export async function listOpenInvites(
   const { data: invites, error } = await supabase
     .from("dining_invites")
     .select("*")
-    .eq("visibility", "campus_public")
     .eq("status", "open")
     .gt("expires_at", now)
     .order("start_at", { ascending: true });
@@ -82,7 +81,6 @@ export async function listOpenInvitesForRestaurant(
   const { data: invites, error } = await supabase
     .from("dining_invites")
     .select("*")
-    .eq("visibility", "campus_public")
     .eq("status", "open")
     .eq("restaurant_id", restaurantId)
     .gt("expires_at", now)

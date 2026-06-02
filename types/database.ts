@@ -104,7 +104,7 @@ export type Database = {
           expires_at: string;
           max_participants: number;
           message: string | null;
-          visibility: "campus_public";
+          visibility: "campus_public" | "friends_only" | "private_link";
           status: "open" | "full" | "canceled" | "completed" | "expired";
           created_at: string;
           updated_at: string;
@@ -117,7 +117,7 @@ export type Database = {
           expires_at: string;
           max_participants: number;
           message?: string | null;
-          visibility?: "campus_public";
+          visibility?: "campus_public" | "friends_only" | "private_link";
           status?: "open" | "full" | "canceled" | "completed" | "expired";
           created_at?: string;
           updated_at?: string;
@@ -148,6 +148,234 @@ export type Database = {
         };
         Update: Partial<
           Database["public"]["Tables"]["dining_invite_participants"]["Insert"]
+        >;
+        Relationships: [];
+      };
+      friendships: {
+        Row: {
+          id: string;
+          requester_id: string;
+          addressee_id: string;
+          status: "pending" | "accepted" | "rejected" | "blocked";
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          requester_id: string;
+          addressee_id: string;
+          status?: "pending" | "accepted" | "rejected" | "blocked";
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["friendships"]["Insert"]>;
+        Relationships: [];
+      };
+      open_seat_posts: {
+        Row: {
+          id: string;
+          host_id: string;
+          restaurant_id: string | null;
+          location_label: string;
+          available_seats: number;
+          strangers_welcome: boolean;
+          status: "open" | "closed" | "expired";
+          expires_at: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          host_id: string;
+          restaurant_id?: string | null;
+          location_label: string;
+          available_seats: number;
+          strangers_welcome?: boolean;
+          status?: "open" | "closed" | "expired";
+          expires_at: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<
+          Database["public"]["Tables"]["open_seat_posts"]["Insert"]
+        >;
+        Relationships: [];
+      };
+      meal_plans: {
+        Row: {
+          id: string;
+          creator_id: string;
+          title: string;
+          note: string | null;
+          status: "collecting_availability" | "confirmed" | "canceled";
+          confirmed_restaurant_id: string | null;
+          confirmed_start_at: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          creator_id: string;
+          title: string;
+          note?: string | null;
+          status?: "collecting_availability" | "confirmed" | "canceled";
+          confirmed_restaurant_id?: string | null;
+          confirmed_start_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["meal_plans"]["Insert"]>;
+        Relationships: [];
+      };
+      meal_plan_participants: {
+        Row: {
+          plan_id: string;
+          user_id: string;
+          role: "creator" | "participant";
+          status: "invited" | "joined" | "declined";
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          plan_id: string;
+          user_id: string;
+          role?: "creator" | "participant";
+          status?: "invited" | "joined" | "declined";
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<
+          Database["public"]["Tables"]["meal_plan_participants"]["Insert"]
+        >;
+        Relationships: [];
+      };
+      meal_plan_restaurant_candidates: {
+        Row: {
+          plan_id: string;
+          restaurant_id: string;
+          created_at: string;
+        };
+        Insert: {
+          plan_id: string;
+          restaurant_id: string;
+          created_at?: string;
+        };
+        Update: Partial<
+          Database["public"]["Tables"]["meal_plan_restaurant_candidates"]["Insert"]
+        >;
+        Relationships: [];
+      };
+      meal_plan_time_slots: {
+        Row: {
+          id: string;
+          plan_id: string;
+          start_at: string;
+          end_at: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          plan_id: string;
+          start_at: string;
+          end_at: string;
+          created_at?: string;
+        };
+        Update: Partial<
+          Database["public"]["Tables"]["meal_plan_time_slots"]["Insert"]
+        >;
+        Relationships: [];
+      };
+      meal_plan_availability: {
+        Row: {
+          id: string;
+          plan_id: string;
+          time_slot_id: string;
+          user_id: string;
+          availability: "yes" | "maybe" | "no";
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          plan_id: string;
+          time_slot_id: string;
+          user_id: string;
+          availability: "yes" | "maybe" | "no";
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<
+          Database["public"]["Tables"]["meal_plan_availability"]["Insert"]
+        >;
+        Relationships: [];
+      };
+      chat_threads: {
+        Row: {
+          id: string;
+          thread_type: "friend_group" | "dining_invite" | "meal_plan";
+          title: string | null;
+          created_by: string;
+          dining_invite_id: string | null;
+          meal_plan_id: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          thread_type: "friend_group" | "dining_invite" | "meal_plan";
+          title?: string | null;
+          created_by: string;
+          dining_invite_id?: string | null;
+          meal_plan_id?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["chat_threads"]["Insert"]>;
+        Relationships: [];
+      };
+      chat_thread_members: {
+        Row: {
+          thread_id: string;
+          user_id: string;
+          role: "owner" | "member";
+          status: "active" | "left" | "removed";
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          thread_id: string;
+          user_id: string;
+          role?: "owner" | "member";
+          status?: "active" | "left" | "removed";
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<
+          Database["public"]["Tables"]["chat_thread_members"]["Insert"]
+        >;
+        Relationships: [];
+      };
+      chat_messages: {
+        Row: {
+          id: string;
+          thread_id: string;
+          sender_id: string;
+          body: string;
+          deleted_at: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          thread_id: string;
+          sender_id: string;
+          body: string;
+          deleted_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<
+          Database["public"]["Tables"]["chat_messages"]["Insert"]
         >;
         Relationships: [];
       };
@@ -361,6 +589,22 @@ export type DiningInvite =
   Database["public"]["Tables"]["dining_invites"]["Row"];
 export type DiningInviteParticipant =
   Database["public"]["Tables"]["dining_invite_participants"]["Row"];
+export type Friendship = Database["public"]["Tables"]["friendships"]["Row"];
+export type OpenSeatPost =
+  Database["public"]["Tables"]["open_seat_posts"]["Row"];
+export type MealPlan = Database["public"]["Tables"]["meal_plans"]["Row"];
+export type MealPlanParticipant =
+  Database["public"]["Tables"]["meal_plan_participants"]["Row"];
+export type MealPlanRestaurantCandidate =
+  Database["public"]["Tables"]["meal_plan_restaurant_candidates"]["Row"];
+export type MealPlanTimeSlot =
+  Database["public"]["Tables"]["meal_plan_time_slots"]["Row"];
+export type MealPlanAvailability =
+  Database["public"]["Tables"]["meal_plan_availability"]["Row"];
+export type ChatThread = Database["public"]["Tables"]["chat_threads"]["Row"];
+export type ChatThreadMember =
+  Database["public"]["Tables"]["chat_thread_members"]["Row"];
+export type ChatMessage = Database["public"]["Tables"]["chat_messages"]["Row"];
 export type MenuUpload = Database["public"]["Tables"]["menu_uploads"]["Row"];
 export type MenuUploadStatus = MenuUpload["status"];
 export type MenuItem = Database["public"]["Tables"]["menu_items"]["Row"];

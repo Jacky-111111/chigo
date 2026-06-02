@@ -3,6 +3,11 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import {
+  addCurrentUserToDiningInviteChatThread,
+  ensureDiningInviteChatThread,
+  leaveDiningInviteChatThread,
+} from "@/lib/services/chats";
 import { requireCompletedProfile, requireUser } from "@/lib/services/profiles";
 import { getStartAtFromPreset } from "@/lib/utils/time";
 import { inviteFormSchema } from "@/lib/validations/invite";
@@ -21,18 +26,28 @@ export async function createDiningInvite(formData: FormData) {
     customStartAt: formData.get("customStartAt"),
     maxParticipants: formData.get("maxParticipants"),
     message: formData.get("message"),
+    visibility: formData.get("visibility") || "campus_public",
   });
 
   if (!parsed.success) {
-    inviteError("/invites/new", parsed.error.issues[0]?.message ?? "Invalid invite.");
+    inviteError(
+      "/invites/new",
+      parsed.error.issues[0]?.message ?? "Invalid invite.",
+    );
   }
 
   let startAt: Date;
 
   try {
-    startAt = getStartAtFromPreset(parsed.data.startPreset, parsed.data.customStartAt);
+    startAt = getStartAtFromPreset(
+      parsed.data.startPreset,
+      parsed.data.customStartAt,
+    );
   } catch (error) {
-    inviteError("/invites/new", error instanceof Error ? error.message : "Invalid invite time.");
+    inviteError(
+      "/invites/new",
+      error instanceof Error ? error.message : "Invalid invite time.",
+    );
   }
 
   const now = Date.now();
@@ -42,7 +57,10 @@ export async function createDiningInvite(formData: FormData) {
     inviteError("/invites/new", "Choose a valid start time.");
   }
 
-  if (startAt.getTime() < now - 60 * 1000 || startAt.getTime() > latestAllowedStart) {
+  if (
+    startAt.getTime() < now - 60 * 1000 ||
+    startAt.getTime() > latestAllowedStart
+  ) {
     inviteError("/invites/new", "Invites must start within the next 6 hours.");
   }
 
@@ -57,7 +75,7 @@ export async function createDiningInvite(formData: FormData) {
       expires_at: expiresAt.toISOString(),
       max_participants: parsed.data.maxParticipants,
       message: parsed.data.message || null,
-      visibility: "campus_public",
+      visibility: parsed.data.visibility,
       status: "open",
     })
     .select("id")
@@ -67,6 +85,8 @@ export async function createDiningInvite(formData: FormData) {
   if (error || !createdInvite) {
     inviteError("/invites/new", error?.message ?? "Could not create invite.");
   }
+
+  await ensureDiningInviteChatThread(createdInvite.id);
 
   revalidatePath("/invites");
   redirect(`/invites/${createdInvite.id}`);
@@ -99,7 +119,10 @@ export async function joinDiningInvite(formData: FormData) {
     inviteError(detailPath, "You are already the host of this invite.");
   }
 
-  if (invite.status !== "open" || new Date(invite.expires_at).getTime() <= Date.now()) {
+  if (
+    invite.status !== "open" ||
+    new Date(invite.expires_at).getTime() <= Date.now()
+  ) {
     inviteError(detailPath, "This invite is no longer open.");
   }
 
@@ -108,13 +131,16 @@ export async function joinDiningInvite(formData: FormData) {
     .select("*")
     .eq("invite_id", inviteId)
     .eq("status", "joined");
-  const participants = (participantsData ?? []) as import("@/types/database").DiningInviteParticipant[];
+  const participants = (participantsData ??
+    []) as import("@/types/database").DiningInviteParticipant[];
 
   if (participantsError) {
     inviteError(detailPath, participantsError.message);
   }
 
-  if ((participants ?? []).some((participant) => participant.user_id === user.id)) {
+  if (
+    (participants ?? []).some((participant) => participant.user_id === user.id)
+  ) {
     inviteError(detailPath, "You already joined this invite.");
   }
 
@@ -130,8 +156,15 @@ export async function joinDiningInvite(formData: FormData) {
   });
 
   if (error) {
-    inviteError(detailPath, error.code === "23505" ? "You already joined this invite." : error.message);
+    inviteError(
+      detailPath,
+      error.code === "23505"
+        ? "You already joined this invite."
+        : error.message,
+    );
   }
+
+  await addCurrentUserToDiningInviteChatThread(inviteId, user.id);
 
   revalidatePath("/invites");
   revalidatePath(detailPath);
@@ -162,9 +195,13 @@ export async function leaveDiningInvite(formData: FormData) {
     inviteError(`/invites/${inviteId}`, error.message);
   }
 
+  await leaveDiningInviteChatThread(inviteId, user.id);
+
   revalidatePath("/invites");
   revalidatePath(`/invites/${inviteId}`);
-  redirect(`/invites/${inviteId}?message=${encodeURIComponent("Left invite.")}`);
+  redirect(
+    `/invites/${inviteId}?message=${encodeURIComponent("Left invite.")}`,
+  );
 }
 
 export async function cancelDiningInvite(formData: FormData) {
@@ -188,5 +225,7 @@ export async function cancelDiningInvite(formData: FormData) {
 
   revalidatePath("/invites");
   revalidatePath(`/invites/${inviteId}`);
-  redirect(`/invites/${inviteId}?message=${encodeURIComponent("Invite canceled.")}`);
+  redirect(
+    `/invites/${inviteId}?message=${encodeURIComponent("Invite canceled.")}`,
+  );
 }

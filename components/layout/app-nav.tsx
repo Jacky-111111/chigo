@@ -2,12 +2,31 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { BookOpenText, MapPin, Settings, Users, Utensils } from "lucide-react";
+import {
+  Armchair,
+  BookOpenText,
+  CalendarDays,
+  MapPin,
+  MessageCircle,
+  Settings,
+  UserRound,
+  Users,
+  Utensils,
+} from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { Button } from "@/components/ui/button";
 
 const items = [
   { href: "/invites", label: "Invites", mobileLabel: "Invites", icon: Users },
+  {
+    href: "/friends",
+    label: "Friends",
+    mobileLabel: "Friends",
+    icon: UserRound,
+  },
+  { href: "/chats", label: "Chats", mobileLabel: "Chats", icon: MessageCircle },
+  { href: "/plans", label: "Plans", mobileLabel: "Plans", icon: CalendarDays },
+  { href: "/open-seats", label: "Seats", mobileLabel: "Seats", icon: Armchair },
   {
     href: "/restaurants",
     label: "Restaurants",
@@ -80,27 +99,29 @@ export function AppNav({ displayName }: { displayName?: string | null }) {
       </div>
 
       <nav
-        className="page-shell grid grid-cols-5 gap-1 pb-2 md:hidden"
+        className="page-shell overflow-x-auto pb-2 md:hidden"
         aria-label="Mobile navigation"
       >
-        {items.map((item) => {
-          const active = isActiveRoute(pathname, item.href);
-          const Icon = item.icon;
+        <div className="flex min-w-max gap-1">
+          {items.map((item) => {
+            const active = isActiveRoute(pathname, item.href);
+            const Icon = item.icon;
 
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={cn(
-                "grid min-h-12 place-items-center rounded-[8px] px-2 text-[11px] font-bold text-[var(--text-muted)]",
-                active && "bg-[var(--brand-eggplant)] text-white",
-              )}
-            >
-              <Icon size={17} />
-              <span className="mt-1">{item.mobileLabel}</span>
-            </Link>
-          );
-        })}
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={cn(
+                  "grid min-h-12 min-w-16 place-items-center rounded-[8px] px-2 text-[11px] font-bold text-[var(--text-muted)]",
+                  active && "bg-[var(--brand-eggplant)] text-white",
+                )}
+              >
+                <Icon size={17} />
+                <span className="mt-1">{item.mobileLabel}</span>
+              </Link>
+            );
+          })}
+        </div>
       </nav>
     </header>
   );

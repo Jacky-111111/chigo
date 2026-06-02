@@ -19,17 +19,24 @@ export function InviteForm({
     <form action={createDiningInvite} className="grid gap-5">
       <Card className="grid gap-5 p-5">
         <div>
-          <h2 className="text-xl font-black text-[var(--brand-eggplant)]">Meal details</h2>
+          <h2 className="text-xl font-black text-[var(--brand-eggplant)]">
+            Meal details
+          </h2>
           <p className="mt-1 text-sm leading-6 text-[var(--text-muted)]">
             Create a campus-public invite for a nearby restaurant.
           </p>
         </div>
 
         <Field label="Restaurant">
-          <Select name="restaurantId" defaultValue={selectedRestaurantId ?? restaurants[0]?.id} required>
+          <Select
+            name="restaurantId"
+            defaultValue={selectedRestaurantId ?? restaurants[0]?.id}
+            required
+          >
             {restaurants.map((restaurant) => (
               <option key={restaurant.id} value={restaurant.id}>
-                {restaurant.name} {restaurant.cuisine ? `- ${restaurant.cuisine}` : ""}
+                {restaurant.name}{" "}
+                {restaurant.cuisine ? `- ${restaurant.cuisine}` : ""}
               </option>
             ))}
           </Select>
@@ -45,8 +52,15 @@ export function InviteForm({
             </Select>
           </Field>
 
-          <Field label="Custom start time" hint="Only used when custom time is selected.">
-            <Input name="customStartAt" type="datetime-local" defaultValue={getDefaultCustomStart()} />
+          <Field
+            label="Custom start time"
+            hint="Only used when custom time is selected."
+          >
+            <Input
+              name="customStartAt"
+              type="datetime-local"
+              defaultValue={getDefaultCustomStart()}
+            />
           </Field>
         </div>
 
@@ -62,8 +76,23 @@ export function InviteForm({
           </Select>
         </Field>
 
+        <Field
+          label="Visibility"
+          hint="Friends-only invites appear to accepted friends. Private links stay out of public feeds."
+        >
+          <Select name="visibility" defaultValue="campus_public">
+            <option value="campus_public">Campus public</option>
+            <option value="friends_only">Friends only</option>
+            <option value="private_link">Private link</option>
+          </Select>
+        </Field>
+
         <Field label="Message" hint="Optional. Keep it short and useful.">
-          <Textarea name="message" maxLength={180} placeholder="Want to grab dinner after class?" />
+          <Textarea
+            name="message"
+            maxLength={180}
+            placeholder="Want to grab dinner after class?"
+          />
         </Field>
       </Card>
 

@@ -2,7 +2,7 @@
 
 ChiGo is an AI-powered dining companion for students, starting with Carnegie Mellon University in Pittsburgh.
 
-Stage 3 is the current implementation target: authentication, editable user settings, nearby restaurants, instant dining invites, the AI menu assistant, and a private nutrition meal journal.
+Stage 4 is the current implementation target: authentication, editable user settings, nearby restaurants, instant dining invites, the AI menu assistant, a private nutrition meal journal, friends, persistent group chats, open seats, and scheduled meal plans.
 
 ## Local Setup
 
@@ -75,6 +75,7 @@ db/migrations/0002_stage2_menu_assistant.sql
 db/migrations/0003_stage2_advisor_fixes.sql
 db/migrations/0004_stage2_menu_image_normalization.sql
 db/migrations/0005_stage3_nutrition_journal.sql
+db/migrations/0006_stage4_social_planning_chat.sql
 ```
 
 Then seed restaurants if needed:
@@ -85,6 +86,7 @@ db/seed/stage1_restaurants.sql
 
 The Stage 2 migrations create the private `menu-images` storage bucket plus RLS policies for menu uploads, menu items, feedback, and owned image paths. HEIC/HEIF uploads are normalized to JPEG before storage and AI analysis.
 The Stage 3 migration creates the private `meal-images` storage bucket plus RLS policies for nutrition goals, meal logs, nutrition estimates, and owned meal photo paths.
+The Stage 4 migration creates friendships, open seat posts, meal plans, persistent group chat tables, temporary invite or plan chat tables, RLS policies, and Supabase Realtime publication support for chat messages.
 
 ## Useful Commands
 
@@ -137,6 +139,18 @@ After Supabase and OpenAI are configured:
 3. Open `/meals/[id]` to review or refresh the approximate nutrition estimate.
 4. Visit `/meals` to review daily journal totals.
 5. Visit `/nutrition` to review the weekly dashboard and goal context.
+
+## Stage 4 Flow
+
+After Supabase is configured through the Stage 4 migration:
+
+1. Visit `/friends` to search users, send friend requests, accept requests, and remove friends.
+2. Visit `/chats/new` to create a persistent friend group chat.
+3. Open `/chats/[id]` to send realtime text messages, rename the group, add friends, remove members, or leave.
+4. Visit `/open-seats` to post immediate nearby open seats and close your own post.
+5. Visit `/plans/new` to create a scheduled meal plan with restaurant candidates, invited friends, and time options.
+6. Open `/plans/[id]` to respond to invitations, submit availability, confirm the best time, download calendar links, and use the plan chat.
+7. Open `/invites/[id]` after hosting or joining an invite to use the invite coordination chat.
 
 ## Docs
 
