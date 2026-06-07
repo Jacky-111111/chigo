@@ -198,7 +198,7 @@ export async function ensureDiningInviteChatThread(inviteId: string) {
   }
 
   const participants = (participantsData ?? []) as DiningInviteParticipant[];
-  await upsertChatMembers(
+  await syncChatThreadMembers(
     thread.id,
     participants.map((participant) => ({
       userId: participant.user_id,
@@ -221,7 +221,7 @@ export async function addCurrentUserToDiningInviteChatThread(
     return null;
   }
 
-  await upsertChatMembers(thread.id, [
+  await syncChatThreadMembers(thread.id, [
     { userId, role: "member", status: "active" },
   ]);
 
@@ -300,7 +300,7 @@ export async function ensureMealPlanChatThread(planId: string) {
   }
 
   const participants = (participantData ?? []) as MealPlanParticipant[];
-  await upsertChatMembers(
+  await syncChatThreadMembers(
     thread.id,
     participants.map((participant) => ({
       userId: participant.user_id,
@@ -335,7 +335,7 @@ export async function addCurrentUserToMealPlanChatThread(
     return null;
   }
 
-  await upsertChatMembers(thread.id, [
+  await syncChatThreadMembers(thread.id, [
     { userId, role: "member", status: "active" },
   ]);
 
@@ -380,7 +380,7 @@ async function getMealPlanChatThread(planId: string) {
   return data as ChatThread | null;
 }
 
-async function upsertChatMembers(
+export async function syncChatThreadMembers(
   threadId: string,
   members: Array<{
     userId: string;
@@ -393,18 +393,82 @@ async function upsertChatMembers(
   }
 
   const supabase = await createClient();
-  const { error } = await supabase.from("chat_thread_members").upsert(
-    members.map((member) => ({
-      thread_id: threadId,
-      user_id: member.userId,
-      role: member.role,
-      status: member.status,
-    })),
-    { onConflict: "thread_id,user_id" },
-  );
+  const membersByUser = new Map<
+    string,
+    {
+      thread_id: string;
+      user_id: string;
+      role: ChatThreadMember["role"];
+      status: ChatThreadMember["status"];
+    }
+  >();
 
-  if (error) {
-    throw new Error(error.message);
+  for (const member of members) {
+    const existing = membersByUser.get(member.userId);
+
+    if (!existing || member.role === "owner") {
+      membersByUser.set(member.userId, {
+        thread_id: threadId,
+        user_id: member.userId,
+        role: member.role,
+        status: member.status,
+      });
+    }
+  }
+
+  const rows = [...membersByUser.values()].sort((a, b) => {
+    if (a.role === b.role) {
+      return 0;
+    }
+
+    return a.role === "owner" ? -1 : 1;
+  });
+
+  for (const row of rows) {
+    const { count, error: updateError } = await supabase
+      .from("chat_thread_members")
+      .update(
+        {
+          role: row.role,
+          status: row.status,
+        },
+        { count: "exact" },
+      )
+      .eq("thread_id", row.thread_id)
+      .eq("user_id", row.user_id);
+
+    if (updateError) {
+      throw new Error(updateError.message);
+    }
+
+    if (count && count > 0) {
+      continue;
+    }
+
+    const { error: insertError } = await supabase
+      .from("chat_thread_members")
+      .insert(row);
+
+    if (!insertError) {
+      continue;
+    }
+
+    if (insertError.code !== "23505") {
+      throw new Error(insertError.message);
+    }
+
+    const { error: retryUpdateError } = await supabase
+      .from("chat_thread_members")
+      .update({
+        role: row.role,
+        status: row.status,
+      })
+      .eq("thread_id", row.thread_id)
+      .eq("user_id", row.user_id);
+
+    if (retryUpdateError) {
+      throw new Error(retryUpdateError.message);
+    }
   }
 }
 

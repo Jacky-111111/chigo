@@ -1,6 +1,9 @@
 import { z } from "zod";
 
-const uuid = z.string().uuid();
+const POSTGRES_UUID_PATTERN =
+  /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
+
+const uuid = z.string().trim().regex(POSTGRES_UUID_PATTERN, "Invalid ID.");
 
 const optionalUuid = z.preprocess((value) => {
   if (typeof value !== "string" || value.trim().length === 0) {
@@ -12,7 +15,10 @@ const optionalUuid = z.preprocess((value) => {
 
 const stringArray = z.preprocess((value) => {
   if (Array.isArray(value)) {
-    return value.filter((item): item is string => typeof item === "string");
+    return value.filter(
+      (item): item is string =>
+        typeof item === "string" && item.trim().length > 0,
+    );
   }
 
   if (typeof value === "string" && value.trim().length > 0) {

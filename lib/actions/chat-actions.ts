@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { areAcceptedFriends } from "@/lib/services/friends";
+import { syncChatThreadMembers } from "@/lib/services/chats";
 import { requireCompletedProfile, requireUser } from "@/lib/services/profiles";
 import {
   chatMemberSchema,
@@ -151,19 +152,19 @@ export async function addFriendGroupChatMember(formData: FormData) {
     `/chats/${parsed.data.threadId}`,
   );
 
-  const supabase = await createClient();
-  const { error } = await supabase.from("chat_thread_members").upsert(
-    {
-      thread_id: parsed.data.threadId,
-      user_id: parsed.data.userId,
-      role: "member",
-      status: "active",
-    },
-    { onConflict: "thread_id,user_id" },
-  );
-
-  if (error) {
-    chatError(`/chats/${parsed.data.threadId}`, error.message);
+  try {
+    await syncChatThreadMembers(parsed.data.threadId, [
+      {
+        userId: parsed.data.userId,
+        role: "member",
+        status: "active",
+      },
+    ]);
+  } catch (error) {
+    chatError(
+      `/chats/${parsed.data.threadId}`,
+      error instanceof Error ? error.message : "Could not add member.",
+    );
   }
 
   revalidatePath("/chats");
