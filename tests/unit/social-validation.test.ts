@@ -8,7 +8,7 @@ import {
 
 const userA = "10000000-0000-4000-8000-000000000001";
 const userB = "10000000-0000-4000-8000-000000000002";
-const restaurantA = "20000000-0000-4000-8000-000000000001";
+const restaurantA = "10000000-0000-0000-0000-000000000001";
 
 describe("friendGroupChatFormSchema", () => {
   it("requires at least one selected friend", () => {
@@ -57,6 +57,18 @@ describe("openSeatPostFormSchema", () => {
     expect(result.availableSeats).toBe(2);
     expect(result.strangersWelcome).toBe(true);
   });
+
+  it("accepts deterministic seed restaurant ids", () => {
+    const result = openSeatPostFormSchema.parse({
+      restaurantId: restaurantA,
+      locationLabel: "Cohon",
+      availableSeats: "2",
+      durationMinutes: "45",
+      strangersWelcome: "off",
+    });
+
+    expect(result.restaurantId).toBe(restaurantA);
+  });
 });
 
 describe("mealPlanFormSchema", () => {
@@ -75,5 +87,20 @@ describe("mealPlanFormSchema", () => {
     expect(result.restaurantIds).toEqual([restaurantA]);
     expect(result.participantIds).toEqual([userA, userB]);
     expect(result.durationMinutes).toBe(90);
+  });
+
+  it("ignores blank optional array values from form inputs", () => {
+    const result = mealPlanFormSchema.parse({
+      title: "Dinner",
+      note: "",
+      restaurantIds: [restaurantA, ""],
+      participantIds: ["", userA],
+      slotStarts: ["2026-06-05T18:30", "", "   "],
+      durationMinutes: "60",
+    });
+
+    expect(result.restaurantIds).toEqual([restaurantA]);
+    expect(result.participantIds).toEqual([userA]);
+    expect(result.slotStarts).toEqual(["2026-06-05T18:30"]);
   });
 });

@@ -23,6 +23,27 @@ function mealPlanError(path: string, message: string): never {
   redirect(`${path}?error=${encodeURIComponent(message)}`);
 }
 
+function getMealPlanFormError(error: {
+  issues: Array<{ message: string; path: PropertyKey[] }>;
+}) {
+  const issue = error.issues[0];
+  const field = issue?.path[0];
+
+  if (field === "restaurantIds") {
+    return "Choose one to five valid restaurants.";
+  }
+
+  if (field === "participantIds") {
+    return "Choose valid friends to invite.";
+  }
+
+  if (field === "slotStarts") {
+    return "Add one to five valid future time slots.";
+  }
+
+  return issue?.message ?? "Invalid meal plan.";
+}
+
 export async function createMealPlan(formData: FormData) {
   const user = await requireUser();
   await requireCompletedProfile(user.id);
@@ -36,10 +57,7 @@ export async function createMealPlan(formData: FormData) {
   });
 
   if (!parsed.success) {
-    mealPlanError(
-      "/plans/new",
-      parsed.error.issues[0]?.message ?? "Invalid meal plan.",
-    );
+    mealPlanError("/plans/new", getMealPlanFormError(parsed.error));
   }
 
   const restaurantIds = [...new Set(parsed.data.restaurantIds)];
