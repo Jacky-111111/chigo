@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { sendFriendRequestEmail } from "@/lib/services/email-notifications";
 import {
   getFriendshipBetweenUsers,
   getProfileByUsername,
@@ -20,7 +21,7 @@ function friendError(path: string, message: string): never {
 
 export async function sendFriendRequest(formData: FormData) {
   const user = await requireUser();
-  await requireCompletedProfile(user.id);
+  const requesterProfile = await requireCompletedProfile(user.id);
   const parsed = friendRequestSchema.safeParse({
     username: formData.get("username"),
   });
@@ -73,6 +74,14 @@ export async function sendFriendRequest(formData: FormData) {
   if (error) {
     friendError("/friends", error.message);
   }
+
+  await sendFriendRequestEmail({
+    recipientName: profile.display_name,
+    recipientUserId: profile.id,
+    requesterName: requesterProfile.display_name,
+    requesterUserId: user.id,
+    requesterUsername: requesterProfile.username,
+  });
 
   revalidatePath("/friends");
   redirect(`/friends?message=${encodeURIComponent("Friend request sent.")}`);

@@ -54,16 +54,23 @@ Copy `.env.example` into `.env.local` and fill in the configured values:
 NEXT_PUBLIC_SUPABASE_URL=
 NEXT_PUBLIC_SUPABASE_ANON_KEY=
 NEXT_PUBLIC_APP_URL=http://localhost:3000
+SUPABASE_SERVICE_ROLE_KEY=
 OPENAI_API_KEY=
 OPENAI_MENU_MODEL=gpt-4o-mini
 OPENAI_MENU_TIMEOUT_MS=60000
 OPENAI_NUTRITION_MODEL=gpt-4o-mini
 OPENAI_NUTRITION_TIMEOUT_MS=45000
+RESEND_API_KEY=
+EMAIL_FROM=
+EMAIL_REPLY_TO=
+EMAIL_NOTIFICATIONS_ENABLED=true
+EMAIL_TEST_RECIPIENT=
 ```
 
 Stage 2 menu analysis needs `OPENAI_API_KEY`. `OPENAI_MENU_MODEL` can be changed without code edits if the AI provider model changes later.
 `OPENAI_MENU_TIMEOUT_MS` defaults to `60000` when omitted and is clamped between 10 and 120 seconds.
 Stage 3 nutrition estimation reuses `OPENAI_API_KEY`. `OPENAI_NUTRITION_MODEL` defaults to `OPENAI_MENU_MODEL` and then `gpt-4o-mini`; `OPENAI_NUTRITION_TIMEOUT_MS` defaults to `45000` and is also clamped between 10 and 120 seconds.
+Social email notifications use `RESEND_API_KEY`, `EMAIL_FROM`, and `SUPABASE_SERVICE_ROLE_KEY`. For production Vercel, set `NEXT_PUBLIC_APP_URL=https://chi-go.vercel.app`. See [Email notifications](./docs/EMAILS.md) before enabling email in production.
 
 ## Supabase Setup
 
@@ -161,6 +168,7 @@ After Supabase is configured through the Stage 4 migration:
 - [Product spec index](./SPEC.md)
 - [Shared tech stack](./TECH_STACK.md)
 - [Visual design system](./DESIGN_SYSTEM.md)
+- [Email notifications](./docs/EMAILS.md)
 - [Package requirements](./PACKAGE_REQUIREMENTS.md)
 - [Stage 1: Web MVP](./specs/Stage1.md)
 - [Stage 2: AI menu assistant](./specs/Stage2.md)

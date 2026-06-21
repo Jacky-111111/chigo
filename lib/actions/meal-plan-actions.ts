@@ -8,6 +8,7 @@ import {
   ensureMealPlanChatThread,
   leaveMealPlanChatThread,
 } from "@/lib/services/chats";
+import { sendMealPlanInvitationEmails } from "@/lib/services/email-notifications";
 import { areAcceptedFriends } from "@/lib/services/friends";
 import { requireCompletedProfile, requireUser } from "@/lib/services/profiles";
 import { parseDateTimeLocalInTimeZone } from "@/lib/utils/date-range";
@@ -46,7 +47,7 @@ function getMealPlanFormError(error: {
 
 export async function createMealPlan(formData: FormData) {
   const user = await requireUser();
-  await requireCompletedProfile(user.id);
+  const creatorProfile = await requireCompletedProfile(user.id);
   const parsed = mealPlanFormSchema.safeParse({
     title: formData.get("title"),
     note: formData.get("note"),
@@ -141,6 +142,13 @@ export async function createMealPlan(formData: FormData) {
   }
 
   await ensureMealPlanChatThread(plan.id);
+
+  await sendMealPlanInvitationEmails({
+    creatorName: creatorProfile.display_name,
+    planId: plan.id,
+    planTitle: plan.title,
+    recipientUserIds: participantIds,
+  });
 
   revalidatePath("/plans");
   redirect(`/plans/${plan.id}`);

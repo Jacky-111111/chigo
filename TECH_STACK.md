@@ -76,8 +76,9 @@ This document is the shared technical reference for all staged specs. Stage-spec
 - Environment variables:
   - `NEXT_PUBLIC_SUPABASE_URL`
   - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-  - `SUPABASE_SERVICE_ROLE_KEY` only for server-only admin scripts when absolutely needed
+  - `SUPABASE_SERVICE_ROLE_KEY` only for server-only trusted code paths when absolutely needed, such as Auth recipient email lookup
   - `NEXT_PUBLIC_APP_URL`
+  - `RESEND_API_KEY`, `EMAIL_FROM`, `EMAIL_REPLY_TO`, `EMAIL_NOTIFICATIONS_ENABLED`, and `EMAIL_TEST_RECIPIENT` for transactional email
   - `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` if required by Supabase OAuth configuration
   - Future: `OPENAI_API_KEY`, `GOOGLE_MAPS_API_KEY`, `YELP_API_KEY`
 

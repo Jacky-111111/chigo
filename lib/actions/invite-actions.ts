@@ -8,6 +8,7 @@ import {
   ensureDiningInviteChatThread,
   leaveDiningInviteChatThread,
 } from "@/lib/services/chats";
+import { sendInviteJoinedEmail } from "@/lib/services/email-notifications";
 import { requireCompletedProfile, requireUser } from "@/lib/services/profiles";
 import { getStartAtFromPreset } from "@/lib/utils/time";
 import { inviteFormSchema } from "@/lib/validations/invite";
@@ -95,7 +96,7 @@ export async function createDiningInvite(formData: FormData) {
 export async function joinDiningInvite(formData: FormData) {
   const inviteId = String(formData.get("inviteId") ?? "");
   const user = await requireUser();
-  await requireCompletedProfile(user.id);
+  const joinerProfile = await requireCompletedProfile(user.id);
 
   if (!inviteId) {
     inviteError("/invites", "Missing invite.");
@@ -165,6 +166,28 @@ export async function joinDiningInvite(formData: FormData) {
   }
 
   await addCurrentUserToDiningInviteChatThread(inviteId, user.id);
+
+  const { data: restaurantData, error: restaurantError } = await supabase
+    .from("restaurants")
+    .select("name")
+    .eq("id", invite.restaurant_id)
+    .maybeSingle();
+
+  if (restaurantError) {
+    console.warn("Could not load restaurant for invite email.", {
+      error: restaurantError.message,
+      inviteId,
+    });
+  }
+
+  await sendInviteJoinedEmail({
+    hostUserId: invite.host_id,
+    inviteId,
+    joinerName: joinerProfile.display_name,
+    joinerUserId: user.id,
+    restaurantName:
+      (restaurantData as { name: string } | null)?.name ?? "your restaurant",
+  });
 
   revalidatePath("/invites");
   revalidatePath(detailPath);
